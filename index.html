@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartFinance — PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>SmartFinance</h1>
+    <button id="installBtn" class="btn small">Install</button>
+  </header>
+
+  <main class="container">
+    <section id="dashboard" class="card">
+      <h2>Dashboard — <span id="currentMonthLabel"></span></h2>
+      <div class="grid">
+        <div class="stat">
+          <div class="stat-title">Income</div>
+          <div id="incomeVal" class="stat-value">₹ 0.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Expenses (this month)</div>
+          <div id="expenseVal" class="stat-value">₹ 0.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Investments</div>
+          <div id="investVal" class="stat-value">₹ 0.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Savings</div>
+          <div id="saveVal" class="stat-value">₹ 0.00</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="openAddExpense">+ Add Expense</button>
+        <button class="btn outline" id="openRecurring">Recurring</button>
+        <button class="btn outline" id="openInvest">Investments</button>
+        <button class="btn outline" id="openHistory">History</button>
+      </div>
+    </section>
+
+    <section id="incomeSection" class="card">
+      <h3>Set Monthly Income</h3>
+      <input id="incomeInput" type="number" placeholder="Enter monthly income" />
+      <div class="row">
+        <button class="btn" id="saveIncome">Save</button>
+        <button class="btn outline" id="prevMonthBtn">← Prev Month</button>
+        <button class="btn outline" id="nextMonthBtn">Next Month →</button>
+      </div>
+    </section>
+
+    <section id="addExpenseSection" class="card hidden">
+      <h3>Add Expense</h3>
+      <input id="expAmount" type="number" placeholder="Amount" />
+      <input id="expCategory" type="text" placeholder="Category (Food, Rent...)" />
+      <input id="expNote" type="text" placeholder="Note (optional)" />
+      <input id="expDate" type="date" />
+      <div class="row">
+        <button class="btn" id="addExpBtn">Add</button>
+        <button class="btn outline" id="cancelAddExp">Cancel</button>
+      </div>
+    </section>
+
+    <section id="recurringSection" class="card hidden">
+      <h3>Monthly Recurring</h3>
+      <input id="rec_rent" type="number" placeholder="Rent" />
+      <input id="rec_emi" type="number" placeholder="EMI" />
+      <input id="rec_bills" type="number" placeholder="Bills" />
+      <input id="rec_other" type="number" placeholder="Other monthly" />
+      <h3>Yearly Recurring</h3>
+      <div class="notice">Set due month for yearly items</div>
+      <div class="row">
+        <input id="yr_insurance_amt" type="number" placeholder="Insurance amount" />
+        <select id="yr_insurance_month">
+          <option value="">due month</option>
+        </select>
+      </div>
+      <div class="row">
+        <input id="yr_sub_amt" type="number" placeholder="Annual subscription amount" />
+        <select id="yr_sub_month">
+          <option value="">due month</option>
+        </select>
+      </div>
+      <div class="row">
+        <button class="btn" id="saveRecurring">Save Recurring</button>
+        <button class="btn outline" id="cancelRecurring">Cancel</button>
+      </div>
+    </section>
+
+    <section id="investSection" class="card hidden">
+      <h3>Monthly Investments</h3>
+      <input id="inv_sip" type="number" placeholder="SIP monthly" />
+      <input id="inv_stocks" type="number" placeholder="Stocks monthly" />
+      <input id="inv_other" type="number" placeholder="Other monthly" />
+      <div class="row">
+        <button class="btn" id="saveInvest">Save Investments</button>
+        <button class="btn outline" id="cancelInvest">Cancel</button>
+      </div>
+    </section>
+
+    <section id="historySection" class="card hidden">
+      <h3>History</h3>
+      <div id="monthsList"></div>
+      <div id="monthDetail"></div>
+      <div class="row">
+        <button class="btn outline" id="exportCSV">Export CSV</button>
+        <button class="btn outline" id="clearAll">Clear All Data</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">SmartFinance · Offline PWA · Material-style</footer>
+
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
