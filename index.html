@@ -24,55 +24,58 @@
 
   <main class="container">
     <!-- Dashboard -->
-    <section id="dashboard" class="card mdl-shadow--2dp">
-      <h2>Dashboard — <span id="currentMonthLabel"></span></h2>
+    <!-- Dashboard Section -->
+<section id="dashboardSection">
+  <h2>Dashboard</h2>
 
-      <div class="grid">
-        <div class="stat mdl-card mdl-shadow--2dp">
-          <div class="stat-title">Income (base)</div>
-          <div id="incomeVal" class="stat-value">₹ 0.00</div>
-        </div>
+  <div class="dashboard-summary">
 
-        <div class="stat mdl-card mdl-shadow--2dp">
-          <div class="stat-title">Total Income (base + extras)</div>
-          <div id="incomeTotal" class="stat-value">₹ 0.00</div>
-        </div>
+    <div class="row">
+      <label>Base Income (This Month):</label>
+      <span id="baseIncomeDisplay">₹0</span>
+    </div>
 
-        <div class="stat mdl-card mdl-shadow--2dp">
-          <div class="stat-title">Expenses (this month)</div>
-          <div id="expenseVal" class="stat-value">₹ 0.00</div>
-        </div>
+    <div class="row">
+      <label>Extra Income:</label>
+      <span id="extraIncomeDisplay">₹0</span>
+    </div>
 
-        <div class="stat mdl-card mdl-shadow--2dp">
-          <div class="stat-title">Investments</div>
-          <div id="investVal" class="stat-value">₹ 0.00</div>
-        </div>
+    <div class="row total">
+      <label>Total Income:</label>
+      <span id="totalIncomeDisplay">₹0</span>
+    </div>
 
-        <div class="stat mdl-card mdl-shadow--2dp">
-          <div class="stat-title">Savings</div>
-          <div id="saveVal" class="stat-value">₹ 0.00</div>
-        </div>
+    <hr>
 
-        <div class="stat mdl-card mdl-shadow--2dp">
-          <div class="stat-title">Monthly Recurring Total</div>
-          <div id="monthlyRecurringDisplay" class="stat-value">₹ 0.00</div>
-        </div>
+    <div class="row">
+      <label>Total Recurring (Monthly):</label>
+      <span id="monthlyRecurringDisplay">₹0</span>
+    </div>
 
-        <div class="stat mdl-card mdl-shadow--2dp">
-          <div class="stat-title">Yearly Recurring Total</div>
-          <div id="yearlyRecurringDisplay" class="stat-value">₹ 0.00</div>
-          <div class="muted" id="yearlyMonthlyEquivalent"> (₹ 0.00 /month equivalent)</div>
-        </div>
-      </div>
+    <div class="row">
+      <label>Total Recurring (Yearly):</label>
+      <span id="yearlyRecurringDisplay">₹0</span>
+    </div>
 
-      <div class="actions">
-        <button class="mdl-button mdl-js-button mdl-button--raised" id="openAddExpense">+ Add Expense</button>
-        <button class="mdl-button mdl-js-button mdl-button--compact" id="openRecurring">Recurring</button>
-        <button class="mdl-button mdl-js-button mdl-button--compact" id="openInvest">Investments</button>
-        <button class="mdl-button mdl-js-button mdl-button--compact" id="openHistory">History</button>
-      </div>
-    </section>
+    <div class="row">
+      <label>Yearly → Monthly Equivalent:</label>
+      <span id="yearlyMonthlyEquivalent">₹0</span>
+    </div>
 
+    <hr>
+
+    <div class="row">
+      <label>Total Expenses:</label>
+      <span id="expenseDisplay">₹0</span>
+    </div>
+
+    <div class="row saved">
+      <label>Saved:</label>
+      <span id="savedDisplay">₹0</span>
+    </div>
+
+  </div>
+</section>
     <!-- Income Section -->
     <section id="incomeSection" class="card mdl-shadow--2dp">
       <h3>Set Monthly Income</h3>
