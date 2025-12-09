@@ -1,56 +1,199 @@
-:root{
-  --primary:#1976d2;
-  --bg:#f3f6fb;
-  --text:#222;
-  --muted:#666;
+/* =========================================
+   1. ROOT VARIABLES (Color Palette)
+   ========================================= */
+:root {
+  /* Branding Colors */
+  --primary: #007BFF;   /* Calming Blue for actions/income */
+  --danger: #DC3545;    /* Soft Red for expenses */
+  --success: #28A745;  /* Healthy Green for savings */
+  
+  /* UI Colors */
+  --bg: #F8F9FA;      /* Light Off-White background */
+  --text: #212529;    /* Dark text */
+  --muted: #6C757D;    /* Gray muted text */
+  --card-bg: #FFFFFF;
 }
-*{box-sizing:border-box}
-body{font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);margin:0;min-height:100vh;display:flex;flex-direction:column}
-.topbar{background:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
-.container{padding:16px;flex:1;max-width:1000px;margin:0 auto;width:100%}
-.card{background:#fff;padding:16px;border-radius:12px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.stat{padding:12px;border-radius:8px}
-.stat-title{font-size:13px;color:var(--muted)}
-.stat-value{font-weight:700;font-size:18px;margin-top:6px}
-.actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
-.row{display:flex;gap:8px;margin-top:10px;align-items:center}
-.input-col{flex:1}
-.hidden{display:none}
-.footer{text-align:center;padding:12px;color:var(--muted);font-size:13px}
-.notice{font-size:13px;color:var(--muted);margin:8px 0}
-.muted{font-size:13px;color:var(--muted);margin-top:6px}
-.small-btn{padding:6px 8px}
-.mdl-button--compact{min-width:56px}
+
+/* =========================================
+   2. GLOBAL RESET & BASE STYLES
+   ========================================= */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================================
+   3. LAYOUT & CONTAINERS
+   ========================================= */
+
+/* Overriding default MDL container behavior */
+.mdl-layout__content.container {
+  padding: 16px;
+  flex: 1;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Topbar styles */
+.topbar {
+  background: var(--card-bg);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for topbar */
+}
+
+/* Card styles (MDL already has card classes, this enhances them) */
+.mdl-card {
+  background: var(--card-bg);
+  padding: 0; /* Let inner content handle padding */
+  border-radius: 12px;
+  margin-bottom: 16px;
+  width: 100%; /* Ensure cards take full width */
+}
+.mdl-card__title {
+    padding: 16px;
+}
+.mdl-card__supporting-text {
+    width: 100%;
+    padding: 16px;
+}
+
+/* Footer style */
+.footer {
+  text-align: center;
+  padding: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* =========================================
+   4. UTILITIES & COMPONENTS
+   ========================================= */
+.row {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+  align-items: center;
+}
+.input-col {
+  flex: 1;
+}
+.hidden {
+  display: none;
+}
+.small-btn {
+  padding: 6px 8px;
+  height: 30px; /* Adjust height for small buttons */
+  line-height: 30px;
+}
+.notice, .muted {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 8px 0;
+}
+
+/* =========================================
+   5. DASHBOARD SPECIFIC STYLES
+   ========================================= */
 
 .dashboard-summary {
+  /* Removed fixed max-width/margin as container handles it, and MDL cards are full-width */
   width: 100%;
-  max-width: 600px;
-  margin: 20px auto;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 14px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  padding: 0; /* MDL card takes care of padding/shadow */
 }
-
 .dashboard-summary .row {
   display: flex;
   justify-content: space-between;
-  margin: 10px 0;
+  padding: 8px 16px; /* Add padding inside the summary rows */
+  margin: 0;
   font-size: 16px;
 }
-
 .dashboard-summary .row.total {
   font-weight: bold;
   font-size: 18px;
+  background-color: var(--bg); /* Slight contrast for total rows */
 }
 
+/* Color Coding for Financial Displays */
+.dashboard-summary .row.income {
+    color: var(--primary); /* Blue for Income */
+}
+.dashboard-summary .row.expense {
+    color: var(--danger); /* Red for Expenses */
+}
 .dashboard-summary .row.saved {
   font-weight: bold;
-  color: #2f8f2f;
+  color: var(--success); /* Green for Saved/Positive */
+  background-color: #e6ffe6; /* Light green background */
+  border-radius: 0 0 12px 12px; /* Rounded bottom if it's the last row */
+}
+.dashboard-summary hr {
+  margin: 10px 0;
+  opacity: 0.1;
+  border-color: var(--muted);
 }
 
-.dashboard-summary hr {
-  margin: 15px 0;
-  opacity: 0.3;
+/* Month Selector */
+.month-selector-row {
+    justify-content: space-around;
+    padding: 10px 0;
+    align-items: center;
+    background-color: var(--card-bg); /* Ensure it contrasts with BG */
+}
+.current-month-label {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* =========================================
+   6. FLOATING ACTION BUTTON (FAB)
+   ========================================= */
+.floating-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 900; /* Above most other elements */
+  background-color: var(--primary) !important;
+}
+
+/* =========================================
+   7. MDL CUSTOMIZATIONS
+   ========================================= */
+
+/* Customizing the colored button to match primary color */
+.mdl-button--colored,
+.mdl-button.mdl-button--colored:active,
+.mdl-button.mdl-button--colored:hover {
+    background: var(--primary) !important;
+    color: var(--card-bg) !important;
+}
+
+/* Customizing the accent button (good for 'Clear All' or 'Add' actions) */
+.mdl-button--accent.mdl-button--raised,
+.mdl-button--accent.mdl-button--fab {
+    background-color: var(--danger) !important; /* Using danger for destructive action like Clear All */
+}
+
+/* Tab styles (to keep them clean) */
+.mdl-tabs__tab.is-active {
+    color: var(--primary) !important;
+}
+.mdl-tabs__tab-bar {
+    border-bottom: 2px solid var(--bg); /* Lighter separator */
+}
+.mdl-tabs__tab.is-active::after {
+    background: var(--primary) !important;
+    height: 3px;
 }
