@@ -1,3 +1,4 @@
+// db.js - IndexedDB wrapper for SmartFinance (updated income structure)
 const DB_NAME = "SmartFinanceDB_v1";
 const DB_STORE = "months";
 let db;
@@ -8,7 +9,7 @@ function openDB(){
     req.onupgradeneeded = (e) => {
       db = e.target.result;
       if(!db.objectStoreNames.contains(DB_STORE)){
-        const store = db.createObjectStore(DB_STORE, { keyPath: "id" });
+        const store = db.createObjectStore(DB_STORE, { keyPath: "id" }); // id: "YYYY-MM"
         store.createIndex("by_date", "id", { unique: true });
       }
     };
@@ -64,18 +65,30 @@ async function listMonths(){
   });
 }
 
+// Ensure month object exists and has new income structure:
+// income: { base: Number, extras: [ {label, amount} ] }
 async function ensureMonth(monthId){
   let m = await getMonth(monthId);
   if(!m){
     m = {
       id: monthId,
-      income: 0,
-      daily: [],
+      income: { base: 0, extras: [] },
+      daily: [], // list of {amount,category,note,date,ts}
       monthlyRecurring: {rent:0,emi:0,bills:0,other:0},
-      yearlyRecurringDue: [],
+      yearlyRecurringDue: [], // list of {name,amount,month} where month is 1-12
       investments: {sip:0,stocks:0,other:0}
     };
     await saveMonth(m);
+  } else {
+    // normalize older data shape: if income is number convert to object
+    if(typeof m.income === 'number'){
+      m.income = { base: m.income, extras: [] };
+      await saveMonth(m);
+    }
+    // ensure keys exist
+    m.monthlyRecurring = m.monthlyRecurring || {rent:0,emi:0,bills:0,other:0};
+    m.yearlyRecurringDue = m.yearlyRecurringDue || [];
+    m.investments = m.investments || {sip:0,stocks:0,other:0};
   }
   return m;
 }
