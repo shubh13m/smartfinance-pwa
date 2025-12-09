@@ -1,5 +1,5 @@
 // --- CRITICAL CHANGE: INCREMENT THE CACHE VERSION ---
-const CACHE_NAME = 'smartfinance-cache-v2';
+const CACHE_NAME = 'smartfinance-cache-v3';
 // --------------------------------------------------
 
 const ASSETS = [
@@ -30,7 +30,7 @@ self.addEventListener('install', evt => {
   self.skipWaiting();
 });
 
-// --- ACTIVATE: Clears out any old caches (e.g., 'v1') ---
+// --- ACTIVATE: Clears out any old caches (e.g., 'v2') ---
 self.addEventListener('activate', evt => {
     console.log('Service Worker: Activating and clearing old caches.');
     evt.waitUntil(
