@@ -1,4 +1,4 @@
-// app.js - Final Version: Includes Category Management and Effective Monthly Recurring Cost
+// app.js - Final Version: Includes Category Management, Effective Monthly Recurring Cost, and Seamless PWA Update Handler
 
 (async function(){
   
@@ -10,7 +10,7 @@
   ];
   // ----------------------------------------
   
-  // Assume openDB, ensureMonth, saveMonth, listMonths, getMonth exist in db.js
+  // Assume openDB, ensureMonth, saveMonth, listMonths, getMonth, getMonthIdFromDate exist in db.js
   await openDB();
 
   // --- Core DOM References (Updated) ---
@@ -62,8 +62,10 @@
   const monthsList = document.getElementById('monthsList');
   const monthDetail = document.getElementById('monthDetail');
   
-  // PWA Install
+  // PWA Install & Update Prompts
   const installBtn = document.getElementById('installBtn');
+  // 🆕 NEW: Reference for the update bar in index.html
+  const updateBar = document.getElementById('updateBar'); 
   let deferredPrompt;
 
   // --- State & Helpers ---
@@ -204,7 +206,7 @@
         .filter(item => Number(item.month) === currentMonthNum)
         .reduce((sum, item) => sum + Number(item.amount || 0), 0);
         
-    // 🆕 Calculate and display Effective Monthly Recurring Cost
+    // Calculate and display Effective Monthly Recurring Cost
     const effectiveMonthlyCost = await calculateEffectiveMonthlyCost(viewingMonth);
 
     // Total Outflow
@@ -213,7 +215,7 @@
     expenseDisplay.textContent = fmt(dailyTotal);
     monthlyRecurringDisplay.textContent = fmt(monthlyRecurringTotal);
     yearlyDueThisMonthDisplay.textContent = fmt(yearlyDueThisMonthTotal);
-    // 🆕 Display the new metric
+    // Display the new metric
     effectiveMonthlyRecurringDisplay.textContent = fmt(effectiveMonthlyCost);
 
     // 3. SAVINGS
@@ -294,8 +296,20 @@
       const opt = document.createElement('option'); opt.value = m.v; opt.textContent = m.n; recDueMonth.appendChild(opt);
     });
   }
+  
+  // 🆕 NEW FUNCTION: Show the update prompt bar
+  function showUpdatePrompt() {
+    if (updateBar) {
+        updateBar.classList.remove('hidden');
+        updateBar.querySelector('#reloadAppBtn').addEventListener('click', () => {
+            // Reload the page to load the new Service Worker and assets
+            window.location.reload(); 
+        });
+    }
+  }
 
-  // --- Initialization ---
+
+  // --- Initialization (Updated with SW listener) ---
   
   // Set default date for expense input
   expDate.value = new Date().toISOString().slice(0,10);
@@ -303,24 +317,42 @@
   await ensureMonth(viewingMonth);
   populateMonthSelects();
   refreshDashboard();
-
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('service-worker.js').catch(()=>console.warn('sw failed'));
-  }
   
-  // PWA install prompt handler
-  window.addEventListener('beforeinstallprompt', (e)=>{
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.classList.remove('hidden');
-  });
-  installBtn.addEventListener('click', async ()=>{
-    if(deferredPrompt){
-      deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      installBtn.classList.add('hidden');
-    }
-  });
+  // --- 📢 PWA Service Worker Update Handler ---
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => {
+        console.log('SW registration successful');
+
+        // Check for updates every time the app loads
+        reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Show a message to the user that an update is ready
+                    showUpdatePrompt(); 
+                }
+            });
+        });
+      })
+      .catch(() => console.warn('SW registration failed'));
+
+    // PWA install prompt handler
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.classList.remove('hidden');
+    });
+    
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        installBtn.classList.add('hidden');
+      }
+    });
+  }
+  // --- END PWA Update Handler ---
 
 })();
