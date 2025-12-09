@@ -36,34 +36,50 @@ body {
    ========================================= */
 
 /* Overriding default MDL container behavior */
+/* MOBILE FIRST: Default padding is suitable for small screens */
 .mdl-layout__content.container {
-  padding: 16px;
+  padding: 8px; /* Reduced padding for mobile screens */
   flex: 1;
-  max-width: 1000px;
-  margin: 0 auto;
   width: 100%;
+  margin: 0 auto;
+}
+
+/* DESKTOP/TABLET: Restore padding and max-width */
+@media screen and (min-width: 600px) {
+  .mdl-layout__content.container {
+    padding: 16px;
+    max-width: 1000px;
+  }
 }
 
 /* Topbar styles */
 .topbar {
   background: var(--card-bg);
-  padding: 12px 16px;
+  padding: 8px 16px; /* Reduced vertical padding */
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for topbar */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.topbar h1 {
+    font-size: 1.5rem; /* Smaller H1 for mobile */
+    margin: 0;
 }
 
 /* Card styles (MDL already has card classes, this enhances them) */
 .mdl-card {
   background: var(--card-bg);
-  padding: 0; /* Let inner content handle padding */
-  border-radius: 12px;
-  margin-bottom: 16px;
-  width: 100%; /* Ensure cards take full width */
+  padding: 0;
+  border-radius: 8px; /* Slightly smaller radius for mobile */
+  margin-bottom: 12px; /* Slightly less margin for mobile */
+  width: 100%;
 }
+/* 🆕 ADJUSTED CARD PADDING FOR MOBILE */
 .mdl-card__title {
-    padding: 16px;
+    padding: 12px 16px; /* Tighter padding */
+}
+.mdl-card__title-text {
+    font-size: 1.25rem; /* Smaller title font for mobile */
 }
 .mdl-card__supporting-text {
     width: 100%;
@@ -73,9 +89,9 @@ body {
 /* Footer style */
 .footer {
   text-align: center;
-  padding: 12px;
+  padding: 10px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 /* =========================================
@@ -83,25 +99,33 @@ body {
    ========================================= */
 .row {
   display: flex;
-  gap: 8px;
-  margin: 10px 0;
+  /* 🆕 Set gap and margin for mobile */
+  gap: 12px; 
+  margin: 8px 0;
   align-items: center;
 }
 .input-col {
   flex: 1;
 }
+/* 🆕 Added flex-wrap for inputs on very small screens */
+.mdl-card__supporting-text > .row {
+    flex-wrap: wrap; 
+}
 .hidden {
   display: none;
 }
 .small-btn {
-  padding: 6px 8px;
-  height: 30px; /* Adjust height for small buttons */
-  line-height: 30px;
+  padding: 4px 8px; /* Tighter padding */
+  height: 28px; 
+  line-height: 28px;
 }
 .notice, .muted {
   font-size: 13px;
   color: var(--muted);
   margin: 8px 0;
+}
+.mdl-list__item {
+    padding: 8px 16px; /* Tighter list spacing */
 }
 
 /* =========================================
@@ -109,38 +133,37 @@ body {
    ========================================= */
 
 .dashboard-summary {
-  /* Removed fixed max-width/margin as container handles it, and MDL cards are full-width */
   width: 100%;
-  padding: 0; /* MDL card takes care of padding/shadow */
+  padding: 0;
 }
 .dashboard-summary .row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 16px; /* Add padding inside the summary rows */
+  padding: 10px 16px; /* Tighter padding inside summary rows */
   margin: 0;
-  font-size: 16px;
+  font-size: 15px; /* Slightly smaller text */
 }
 .dashboard-summary .row.total {
   font-weight: bold;
-  font-size: 18px;
-  background-color: var(--bg); /* Slight contrast for total rows */
+  font-size: 17px;
+  background-color: var(--bg); 
 }
 
-/* Color Coding for Financial Displays */
+/* Color Coding for Financial Displays (No change here, colors are great) */
 .dashboard-summary .row.income {
-    color: var(--primary); /* Blue for Income */
+    color: var(--primary);
 }
 .dashboard-summary .row.expense {
-    color: var(--danger); /* Red for Expenses */
+    color: var(--danger);
 }
 .dashboard-summary .row.saved {
   font-weight: bold;
-  color: var(--success); /* Green for Saved/Positive */
-  background-color: #e6ffe6; /* Light green background */
-  border-radius: 0 0 12px 12px; /* Rounded bottom if it's the last row */
+  color: var(--success); 
+  background-color: #e6ffe6; 
+  border-radius: 0 0 8px 8px; /* Adjusted radius to match card */
 }
 .dashboard-summary hr {
-  margin: 10px 0;
+  margin: 8px 0; /* Tighter margin */
   opacity: 0.1;
   border-color: var(--muted);
 }
@@ -148,13 +171,18 @@ body {
 /* Month Selector */
 .month-selector-row {
     justify-content: space-around;
-    padding: 10px 0;
+    padding: 8px 0; /* Tighter padding */
     align-items: center;
-    background-color: var(--card-bg); /* Ensure it contrasts with BG */
+    background-color: var(--card-bg);
 }
 .current-month-label {
     font-weight: bold;
-    font-size: 1.1em;
+    font-size: 1em; /* Adjusted font size */
+    text-align: center;
+    flex-grow: 1; /* Allow the label to take space */
+}
+.month-selector-row button {
+    padding: 0 8px; /* Tighter button padding */
 }
 
 /* =========================================
@@ -162,14 +190,14 @@ body {
    ========================================= */
 .floating-btn {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 900; /* Above most other elements */
+  bottom: 16px; /* Moved slightly up for better mobile UX */
+  right: 16px; /* Moved slightly inward */
+  z-index: 900;
   background-color: var(--primary) !important;
 }
 
 /* =========================================
-   7. MDL CUSTOMIZATIONS
+   7. MDL CUSTOMIZATIONS & TAB ADJUSTMENTS
    ========================================= */
 
 /* Customizing the colored button to match primary color */
@@ -183,17 +211,56 @@ body {
 /* Customizing the accent button (good for 'Clear All' or 'Add' actions) */
 .mdl-button--accent.mdl-button--raised,
 .mdl-button--accent.mdl-button--fab {
-    background-color: var(--danger) !important; /* Using danger for destructive action like Clear All */
+    background-color: var(--danger) !important;
 }
 
-/* Tab styles (to keep them clean) */
+/* 🆕 Tab styles adjustment for mobile horizontal scrolling */
+.mdl-tabs__tab-bar {
+    border-bottom: 2px solid var(--bg);
+    padding: 0;
+    /* Enable horizontal scrolling if tabs are too wide */
+    overflow-x: auto; 
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+}
+/* Ensure tabs are minimum size but flex to fit content */
+.mdl-tabs__tab {
+    min-width: 90px;
+    padding: 0 12px; /* Tighter padding around tab links */
+    line-height: 40px; /* Tighter line height */
+    height: 40px; /* Tighter height */
+}
+
+/* Tab indicator color */
 .mdl-tabs__tab.is-active {
     color: var(--primary) !important;
-}
-.mdl-tabs__tab-bar {
-    border-bottom: 2px solid var(--bg); /* Lighter separator */
 }
 .mdl-tabs__tab.is-active::after {
     background: var(--primary) !important;
     height: 3px;
+}
+
+/* 🆕 Make Input Rows Stack on Mobile for Inputs/Buttons */
+/* When inputs are side-by-side with buttons, stack them for clarity */
+@media screen and (max-width: 600px) {
+    /* Targets the rows in the Income input card and Expense input card */
+    #incomeInputCard .row, 
+    #addDailyExpenseSection .row,
+    #addRecurringItemSection .row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .input-col {
+        width: 100%;
+    }
+    /* Buttons should take full width when stacked */
+    #saveIncome, #addExtraIncome, #addExpBtn, #addRecurringItemBtn,
+    #exportCSV, #clearAll {
+        width: 100%;
+        margin-top: 8px;
+    }
+    /* Ensure radio buttons (for recurring) stay inline */
+    #addRecurringItemSection .mdl-radio {
+        width: auto;
+    }
 }
