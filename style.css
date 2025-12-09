@@ -12,6 +12,8 @@
   --text: #212529;    /* Dark text */
   --muted: #6C757D;    /* Gray muted text */
   --card-bg: #FFFFFF;
+  /* 🆕 New CSS variable for sticky header height */
+  --sticky-header-height: 100px; 
 }
 
 /* =========================================
@@ -35,10 +37,13 @@ body {
    3. LAYOUT & CONTAINERS
    ========================================= */
 
-/* Overriding default MDL container behavior */
-/* MOBILE FIRST: Default padding is suitable for small screens */
+/* 🆕 ADJUST BODY PADDING to account for the sticky headers */
 .mdl-layout__content.container {
-  padding: 8px; /* Reduced padding for mobile screens */
+  /* This must be large enough to push content below the sticky topbar + tabs */
+  padding-top: var(--sticky-header-height); 
+  padding-bottom: 8px; /* Maintain bottom padding */
+  padding-left: 8px; 
+  padding-right: 8px;
   flex: 1;
   width: 100%;
   margin: 0 auto;
@@ -48,21 +53,30 @@ body {
 @media screen and (min-width: 600px) {
   .mdl-layout__content.container {
     padding: 16px;
+    padding-top: var(--sticky-header-height); /* Keep sticky padding */
     max-width: 1000px;
   }
 }
 
-/* Topbar styles */
+/* 🆕 STICKY TOPBAR */
 .topbar {
+  /* Fixed position for sticking to the top */
+  position: fixed; 
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999; /* Ensure it's on top of everything */
+  
   background: var(--card-bg);
-  padding: 8px 16px; /* Reduced vertical padding */
+  padding: 8px 16px; 
   display: flex;
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+/* 🆕 INCREASED TITLE SIZE FOR MOBILE */
 .topbar h1 {
-    font-size: 1.5rem; /* Smaller H1 for mobile */
+    font-size: 1.8rem; /* Increased size (was 1.5rem) */
     margin: 0;
 }
 
@@ -70,16 +84,15 @@ body {
 .mdl-card {
   background: var(--card-bg);
   padding: 0;
-  border-radius: 8px; /* Slightly smaller radius for mobile */
-  margin-bottom: 12px; /* Slightly less margin for mobile */
+  border-radius: 8px; 
+  margin-bottom: 12px; 
   width: 100%;
 }
-/* 🆕 ADJUSTED CARD PADDING FOR MOBILE */
 .mdl-card__title {
-    padding: 12px 16px; /* Tighter padding */
+    padding: 12px 16px; 
 }
 .mdl-card__title-text {
-    font-size: 1.25rem; /* Smaller title font for mobile */
+    font-size: 1.25rem; 
 }
 .mdl-card__supporting-text {
     width: 100%;
@@ -99,7 +112,6 @@ body {
    ========================================= */
 .row {
   display: flex;
-  /* 🆕 Set gap and margin for mobile */
   gap: 12px; 
   margin: 8px 0;
   align-items: center;
@@ -107,7 +119,6 @@ body {
 .input-col {
   flex: 1;
 }
-/* 🆕 Added flex-wrap for inputs on very small screens */
 .mdl-card__supporting-text > .row {
     flex-wrap: wrap; 
 }
@@ -115,17 +126,16 @@ body {
   display: none;
 }
 .small-btn {
-  padding: 4px 8px; /* Tighter padding */
+  padding: 4px 8px; 
   height: 28px; 
   line-height: 28px;
 }
 .notice, .muted {
   font-size: 13px;
-  color: var(--muted);
   margin: 8px 0;
 }
 .mdl-list__item {
-    padding: 8px 16px; /* Tighter list spacing */
+    padding: 8px 16px; 
 }
 
 /* =========================================
@@ -139,9 +149,9 @@ body {
 .dashboard-summary .row {
   display: flex;
   justify-content: space-between;
-  padding: 10px 16px; /* Tighter padding inside summary rows */
+  padding: 10px 16px; 
   margin: 0;
-  font-size: 15px; /* Slightly smaller text */
+  font-size: 15px; 
 }
 .dashboard-summary .row.total {
   font-weight: bold;
@@ -149,7 +159,6 @@ body {
   background-color: var(--bg); 
 }
 
-/* Color Coding for Financial Displays (No change here, colors are great) */
 .dashboard-summary .row.income {
     color: var(--primary);
 }
@@ -160,10 +169,10 @@ body {
   font-weight: bold;
   color: var(--success); 
   background-color: #e6ffe6; 
-  border-radius: 0 0 8px 8px; /* Adjusted radius to match card */
+  border-radius: 0 0 8px 8px;
 }
 .dashboard-summary hr {
-  margin: 8px 0; /* Tighter margin */
+  margin: 8px 0; 
   opacity: 0.1;
   border-color: var(--muted);
 }
@@ -171,18 +180,18 @@ body {
 /* Month Selector */
 .month-selector-row {
     justify-content: space-around;
-    padding: 8px 0; /* Tighter padding */
+    padding: 8px 0; 
     align-items: center;
     background-color: var(--card-bg);
 }
 .current-month-label {
     font-weight: bold;
-    font-size: 1em; /* Adjusted font size */
+    font-size: 1em; 
     text-align: center;
-    flex-grow: 1; /* Allow the label to take space */
+    flex-grow: 1; 
 }
 .month-selector-row button {
-    padding: 0 8px; /* Tighter button padding */
+    padding: 0 8px; 
 }
 
 /* =========================================
@@ -190,8 +199,8 @@ body {
    ========================================= */
 .floating-btn {
   position: fixed;
-  bottom: 16px; /* Moved slightly up for better mobile UX */
-  right: 16px; /* Moved slightly inward */
+  bottom: 16px; 
+  right: 16px; 
   z-index: 900;
   background-color: var(--primary) !important;
 }
@@ -214,21 +223,29 @@ body {
     background-color: var(--danger) !important;
 }
 
-/* 🆕 Tab styles adjustment for mobile horizontal scrolling */
+/* 🆕 STICKY TABS */
+.mdl-tabs {
+    /* The tabs container must be part of the sticky element */
+    width: 100%;
+    position: fixed; 
+    /* Place it right below the topbar. Topbar height is approx 52px */
+    top: 52px; 
+    left: 0;
+    z-index: 998; /* Below topbar, above content */
+    background: var(--card-bg);
+}
 .mdl-tabs__tab-bar {
     border-bottom: 2px solid var(--bg);
     padding: 0;
-    /* Enable horizontal scrolling if tabs are too wide */
     overflow-x: auto; 
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
 }
-/* Ensure tabs are minimum size but flex to fit content */
 .mdl-tabs__tab {
     min-width: 90px;
-    padding: 0 12px; /* Tighter padding around tab links */
-    line-height: 40px; /* Tighter line height */
-    height: 40px; /* Tighter height */
+    padding: 0 12px;
+    line-height: 40px; 
+    height: 40px;
 }
 
 /* Tab indicator color */
@@ -240,8 +257,41 @@ body {
     height: 3px;
 }
 
+/* 🆕 MOVE UPDATE BAR TO TOP */
+#updateBar {
+  /* Remove fixed bottom positioning */
+  bottom: auto !important;
+  /* Position it right below the sticky tabs. Tabs + Topbar is ~92px */
+  top: 92px !important; 
+  left: 0;
+  right: 0;
+  z-index: 997; /* Below Topbar/Tabs, above content */
+  
+  /* Resetting display properties */
+  position: fixed !important;
+  background: var(--primary);
+  color: white;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center; 
+}
+/* Re-calculate sticky height to accommodate the update bar */
+/* We'll assume Topbar (52px) + Tabs (40px) + UpdateBar (44px) = 136px */
+:root {
+  --sticky-header-height: 136px;
+}
+/* Ensure the content padding is updated based on whether the update bar is shown or not.
+   Since we can't reliably check if 'hidden' is applied in CSS, we keep the max height.
+   For true dynamic adjustment, this padding should be set via JavaScript based on updateBar visibility.
+   For now, we'll set the padding based on the largest possible sticky header height.
+*/
+.mdl-layout__content.container {
+    padding-top: 136px; /* Adjusted to account for Topbar + Tabs + UpdateBar */
+}
+
+
 /* 🆕 Make Input Rows Stack on Mobile for Inputs/Buttons */
-/* When inputs are side-by-side with buttons, stack them for clarity */
 @media screen and (max-width: 600px) {
     /* Targets the rows in the Income input card and Expense input card */
     #incomeInputCard .row, 
