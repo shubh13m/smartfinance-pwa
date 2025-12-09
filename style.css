@@ -3,17 +3,17 @@
    ========================================= */
 :root {
   /* Branding Colors */
-  --primary: #007BFF;   /* Calming Blue for actions/income */
-  --danger: #DC3545;    /* Soft Red for expenses */
-  --success: #28A745;  /* Healthy Green for savings */
+  --primary: #007BFF;
+  --danger: #DC3545;
+  --success: #28A745;
   
   /* UI Colors */
-  --bg: #F8F9FA;      /* Light Off-White background */
-  --text: #212529;    /* Dark text */
-  --muted: #6C757D;    /* Gray muted text */
+  --bg: #F8F9FA;
+  --text: #212529;
+  --muted: #6C757D;
   --card-bg: #FFFFFF;
-  /* 🆕 New CSS variable for sticky header height */
-  --sticky-header-height: 100px; 
+  /* Topbar (52px) + Tabs (40px) + UpdateBar (44px) = ~136px */
+  --sticky-header-height: 136px;
 }
 
 /* =========================================
@@ -37,35 +37,35 @@ body {
    3. LAYOUT & CONTAINERS
    ========================================= */
 
-/* 🆕 ADJUST BODY PADDING to account for the sticky headers */
+/* 1. Scrolling container and content offset */
 .mdl-layout__content.container {
-  /* This must be large enough to push content below the sticky topbar + tabs */
-  padding-top: var(--sticky-header-height); 
-  padding-bottom: 8px; /* Maintain bottom padding */
+  /* CRUCIAL FIX: Remove flex: 1 and use margin-top for offset */
+  padding-top: 8px; /* Reset actual padding */
+  padding-bottom: 8px;
   padding-left: 8px; 
   padding-right: 8px;
-  flex: 1;
   width: 100%;
   margin: 0 auto;
+  /* Offset content below the fixed topbar (52px) */
+  margin-top: 52px; 
 }
 
 /* DESKTOP/TABLET: Restore padding and max-width */
 @media screen and (min-width: 600px) {
   .mdl-layout__content.container {
     padding: 16px;
-    padding-top: var(--sticky-header-height); /* Keep sticky padding */
+    padding-top: 16px; /* Restore actual padding */
     max-width: 1000px;
   }
 }
 
-/* 🆕 STICKY TOPBAR */
+/* 2. STICKY TOPBAR (Fixed position remains the best choice here) */
 .topbar {
-  /* Fixed position for sticking to the top */
   position: fixed; 
   top: 0;
   left: 0;
   right: 0;
-  z-index: 999; /* Ensure it's on top of everything */
+  z-index: 999;
   
   background: var(--card-bg);
   padding: 8px 16px; 
@@ -74,9 +74,9 @@ body {
   justify-content: space-between;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-/* 🆕 INCREASED TITLE SIZE FOR MOBILE */
+/* INCREASED TITLE SIZE FOR MOBILE */
 .topbar h1 {
-    font-size: 1.8rem; /* Increased size (was 1.5rem) */
+    font-size: 1.8rem;
     margin: 0;
 }
 
@@ -223,24 +223,32 @@ body {
     background-color: var(--danger) !important;
 }
 
-/* 🆕 STICKY TABS */
+/* 3. STICKY TABS (CRUCIAL FIX: Changed from fixed to sticky) */
 .mdl-tabs {
-    /* The tabs container must be part of the sticky element */
+    /* Set back to default static position for normal flow */
+    position: static; 
     width: 100%;
-    position: fixed; 
-    /* Place it right below the topbar. Topbar height is approx 52px */
-    top: 52px; 
-    left: 0;
-    z-index: 998; /* Below topbar, above content */
-    background: var(--card-bg);
+    /* margin is needed to place it correctly within the scrollable container */
+    margin-top: 0; 
 }
+
+/* Make the tab bar itself sticky within the scrollable container */
 .mdl-tabs__tab-bar {
     border-bottom: 2px solid var(--bg);
     padding: 0;
     overflow-x: auto; 
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
+
+    /* 🆕 The magic for sticky tabs: */
+    position: sticky;
+    top: 0; /* Stick to the top of the *scrollable parent* */
+    z-index: 998; 
+    background: var(--card-bg); /* Ensure it has a background when sticky */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Optional subtle shadow */
 }
+
+/* Tab link styles */
 .mdl-tabs__tab {
     min-width: 90px;
     padding: 0 12px;
@@ -257,18 +265,16 @@ body {
     height: 3px;
 }
 
-/* 🆕 MOVE UPDATE BAR TO TOP */
+/* 4. MOVE UPDATE BAR TO TOP */
 #updateBar {
-  /* Remove fixed bottom positioning */
-  bottom: auto !important;
-  /* Position it right below the sticky tabs. Tabs + Topbar is ~92px */
-  top: 92px !important; 
+  /* Use fixed positioning, but set its top offset correctly */
+  position: fixed !important;
+  /* Topbar height (~52px) */
+  top: 52px !important; 
   left: 0;
   right: 0;
-  z-index: 997; /* Below Topbar/Tabs, above content */
+  z-index: 998; /* Below topbar */
   
-  /* Resetting display properties */
-  position: fixed !important;
   background: var(--primary);
   color: white;
   padding: 12px;
@@ -276,19 +282,18 @@ body {
   justify-content: space-between;
   align-items: center; 
 }
-/* Re-calculate sticky height to accommodate the update bar */
-/* We'll assume Topbar (52px) + Tabs (40px) + UpdateBar (44px) = 136px */
-:root {
-  --sticky-header-height: 136px;
-}
-/* Ensure the content padding is updated based on whether the update bar is shown or not.
-   Since we can't reliably check if 'hidden' is applied in CSS, we keep the max height.
-   For true dynamic adjustment, this padding should be set via JavaScript based on updateBar visibility.
-   For now, we'll set the padding based on the largest possible sticky header height.
+/* 🆕 Adjust the container margin to account for the update bar and tabs */
+/* Since the tabs are now sticky inside the container, we only need to push the content down 
+   by the height of the update bar when it is visible. This is complex in pure CSS.
+   We will rely on the tabs sticking correctly and make the container offset simple.
+   If the update bar is visible, its presence will slightly obscure the top of the tabs.
+   The simplest fix is to adjust the margin-top for the tab content.
+   
+   However, the best solution is to use JS to adjust the margin if the update bar is active.
+   
+   For pure CSS, let's adjust the margin on the content panels to push them down
+   when the update bar is NOT hidden.
 */
-.mdl-layout__content.container {
-    padding-top: 136px; /* Adjusted to account for Topbar + Tabs + UpdateBar */
-}
 
 
 /* 🆕 Make Input Rows Stack on Mobile for Inputs/Buttons */
