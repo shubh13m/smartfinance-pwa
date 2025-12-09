@@ -22,3 +22,35 @@ body{font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var
 .muted{font-size:13px;color:var(--muted);margin-top:6px}
 .small-btn{padding:6px 8px}
 .mdl-button--compact{min-width:56px}
+
+.dashboard-summary {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.dashboard-summary .row {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+.dashboard-summary .row.total {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.dashboard-summary .row.saved {
+  font-weight: bold;
+  color: #2f8f2f;
+}
+
+.dashboard-summary hr {
+  margin: 15px 0;
+  opacity: 0.3;
+}
