@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SmartFinance — PWA</title>
 
-  <!-- Material Design Lite (MDL) -->
   <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
   <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
 
@@ -17,162 +16,206 @@
     <div class="container-row">
       <h1>SmartFinance</h1>
       <div>
-        <button id="installBtn" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored small-btn">Install</button>
+        <button id="installBtn" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored small-btn hidden">Install</button>
       </div>
     </div>
   </header>
 
-  <main class="container">
-    <!-- Dashboard -->
-    <!-- Dashboard Section -->
-<section id="dashboardSection">
-  <h2>Dashboard</h2>
+  <main class="mdl-layout__content container">
+    <div class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect">
 
-  <div class="dashboard-summary">
-
-    <div class="row">
-      <label>Base Income (This Month):</label>
-      <span id="baseIncomeDisplay">₹0</span>
-    </div>
-
-    <div class="row">
-      <label>Extra Income:</label>
-      <span id="extraIncomeDisplay">₹0</span>
-    </div>
-
-    <div class="row total">
-      <label>Total Income:</label>
-      <span id="totalIncomeDisplay">₹0</span>
-    </div>
-
-    <hr>
-
-    <div class="row">
-      <label>Total Recurring (Monthly):</label>
-      <span id="monthlyRecurringDisplay">₹0</span>
-    </div>
-
-    <div class="row">
-      <label>Total Recurring (Yearly):</label>
-      <span id="yearlyRecurringDisplay">₹0</span>
-    </div>
-
-    <div class="row">
-      <label>Yearly → Monthly Equivalent:</label>
-      <span id="yearlyMonthlyEquivalent">₹0</span>
-    </div>
-
-    <hr>
-
-    <div class="row">
-      <label>Total Expenses:</label>
-      <span id="expenseDisplay">₹0</span>
-    </div>
-
-    <div class="row saved">
-      <label>Saved:</label>
-      <span id="savedDisplay">₹0</span>
-    </div>
-
-  </div>
-</section>
-    <!-- Income Section -->
-    <section id="incomeSection" class="card mdl-shadow--2dp">
-      <h3>Set Monthly Income</h3>
-
-      <div class="row">
-        <div class="input-col">
-          <label class="mdl-textfield mdl-js-textfield">
-            <input class="mdl-textfield__input" type="number" id="incomeInput" placeholder="Enter base monthly income">
-          </label>
-        </div>
-        <div class="input-col">
-          <button id="saveIncome" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">Save Base Income</button>
-        </div>
+      <div class="mdl-tabs__tab-bar">
+        <a href="#dashboard-panel" class="mdl-tabs__tab is-active">Dashboard</a>
+        <a href="#expenses-panel" class="mdl-tabs__tab">Expenses</a>
+        <a href="#recurring-panel" class="mdl-tabs__tab">Recurring</a>
+        <a href="#history-panel" class="mdl-tabs__tab">History</a>
       </div>
 
-      <!-- Extra income add -->
-      <h4>Add Extra Income (bonus, freelance)</h4>
-      <div class="row">
-        <input id="extraLabel" class="mdl-textfield__input" type="text" placeholder="Label (eg. Freelance)">
-        <input id="extraAmount" class="mdl-textfield__input" type="number" placeholder="Amount">
-        <button id="addExtraIncome" class="mdl-button mdl-js-button mdl-button--raised">Add Extra</button>
+      <div class="mdl-tabs__panel is-active" id="dashboard-panel">
+        
+        <section id="dashboardSection" class="mdl-card mdl-shadow--2dp">
+          <div class="mdl-card__supporting-text dashboard-summary">
+            
+            <div class="row nav month-selector-row">
+              <button class="mdl-button mdl-js-button" id="prevMonthBtn">← Prev</button>
+              <span id="currentMonthDisplay" class="current-month-label"></span> 
+              <button class="mdl-button mdl-js-button" id="nextMonthBtn">Next →</button>
+            </div>
+
+            <hr>
+
+            <div class="row income">
+              <label>Base Income:</label>
+              <span id="baseIncomeDisplay">₹0</span>
+            </div>
+            <div class="row income">
+              <label>Extra Income:</label>
+              <span id="extraIncomeDisplay">₹0</span>
+            </div>
+            <div class="row total income">
+              <label>TOTAL INCOME:</label>
+              <span id="totalIncomeDisplay">₹0</span>
+            </div>
+
+            <hr>
+
+            <div class="row expense">
+              <label>Total Daily Expenses:</label>
+              <span id="expenseDisplay">₹0</span>
+            </div>
+            <div class="row expense">
+              <label>Total Monthly Recurring:</label>
+              <span id="monthlyRecurringDisplay">₹0</span>
+            </div>
+            <div class="row expense">
+              <label>Yearly Due This Month:</label>
+              <span id="yearlyDueThisMonthDisplay">₹0</span>
+            </div>
+
+            <hr>
+
+            <div class="row saved">
+              <label>NET SAVINGS / DEFICIT:</label>
+              <span id="savedDisplay">₹0</span>
+            </div>
+          
+          </div>
+        </section>
+        
+        <section id="incomeInputCard" class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title"><h2 class="mdl-card__title-text">Set Income</h2></div>
+            <div class="mdl-card__supporting-text">
+                
+                <h4>Base Monthly Income</h4>
+                <div class="row">
+                  <div class="input-col">
+                    <div class="mdl-textfield mdl-js-textfield">
+                      <input class="mdl-textfield__input" type="number" pattern="-?[0-9]*(\.[0-9]+)?" id="incomeInput" placeholder="Enter base monthly income">
+                    </div>
+                  </div>
+                  <button id="saveIncome" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">Save Base</button>
+                </div>
+
+                <h4>Add Extra Income (Bonus, Freelance)</h4>
+                <div class="row">
+                  <div class="input-col">
+                    <div class="mdl-textfield mdl-js-textfield">
+                      <input class="mdl-textfield__input" type="text" id="extraLabel" placeholder="Label (eg. Freelance)">
+                    </div>
+                  </div>
+                  <div class="input-col">
+                    <div class="mdl-textfield mdl-js-textfield">
+                      <input class="mdl-textfield__input" type="number" pattern="-?[0-9]*(\.[0-9]+)?" id="extraAmount" placeholder="Amount">
+                    </div>
+                  </div>
+                  <button id="addExtraIncome" class="mdl-button mdl-js-button mdl-button--raised">Add Extra</button>
+                </div>
+            </div>
+        </section>
       </div>
 
-      <div class="row nav">
-        <button class="mdl-button mdl-js-button" id="prevMonthBtn">← Prev Month</button>
-        <button class="mdl-button mdl-js-button" id="currentMonthBtn">Current Month</button>
-        <button class="mdl-button mdl-js-button" id="nextMonthBtn">Next Month →</button>
-      </div>
-    </section>
+      <div class="mdl-tabs__panel" id="expenses-panel">
+        
+        <section id="addDailyExpenseSection" class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title"><h2 class="mdl-card__title-text">Record Daily Expense</h2></div>
+            <div class="mdl-card__supporting-text">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="number" pattern="-?[0-9]*(\.[0-9]+)?" id="expAmount">
+                  <label class="mdl-textfield__label" for="expAmount">Amount (required)</label>
+                </div>
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="expCategory">
+                  <label class="mdl-textfield__label" for="expCategory">Category (Food, Transport, Investment...)</label>
+                </div>
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="expNote">
+                  <label class="mdl-textfield__label" for="expNote">Note (optional)</label>
+                </div>
+                <div class="row" style="padding-bottom: 15px;">
+                  <label for="expDate">Date:</label>
+                  <input id="expDate" type="date" value="" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
 
-    <!-- Add Expense -->
-    <section id="addExpenseSection" class="card hidden mdl-shadow--2dp">
-      <h3>Add Expense</h3>
-      <input id="expAmount" type="number" placeholder="Amount" />
-      <input id="expCategory" type="text" placeholder="Category (Food, Rent...)" />
-      <input id="expNote" type="text" placeholder="Note (optional)" />
-      <input id="expDate" type="date" />
-      <div class="row">
-        <button class="mdl-button mdl-js-button mdl-button--raised" id="addExpBtn">Add</button>
-        <button class="mdl-button mdl-js-button" id="cancelAddExp">Cancel</button>
-      </div>
-    </section>
-
-    <!-- Recurring -->
-    <section id="recurringSection" class="card hidden mdl-shadow--2dp">
-      <h3>Monthly Recurring</h3>
-      <input id="rec_rent" type="number" placeholder="Rent" />
-      <input id="rec_emi" type="number" placeholder="EMI" />
-      <input id="rec_bills" type="number" placeholder="Bills" />
-      <input id="rec_other" type="number" placeholder="Other monthly" />
-
-      <h3>Yearly Recurring</h3>
-      <div class="notice">Set yearly items (they are considered yearly totals)</div>
-      <div class="row">
-        <input id="yr_insurance_amt" type="number" placeholder="Insurance amount" />
-        <select id="yr_insurance_month">
-          <option value="">due month</option>
-        </select>
-      </div>
-      <div class="row">
-        <input id="yr_sub_amt" type="number" placeholder="Annual subscription amount" />
-        <select id="yr_sub_month">
-          <option value="">due month</option>
-        </select>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="addExpBtn">Save Expense</button>
+            </div>
+        </section>
+        
+        <section id="expenseHistoryList" class="mdl-card mdl-shadow--2dp">
+          <div class="mdl-card__title"><h2 class="mdl-card__title-text">Current Month Expenses</h2></div>
+          <div class="mdl-card__supporting-text">
+            <ul id="currentMonthExpenseList" class="mdl-list">
+              </ul>
+          </div>
+        </section>
       </div>
 
-      <div class="row">
-        <button id="saveRecurring" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">Save Recurring</button>
-        <button id="cancelRecurring" class="mdl-button mdl-js-button">Cancel</button>
-      </div>
-    </section>
+      <div class="mdl-tabs__panel" id="recurring-panel">
+        
+        <section id="addRecurringItemSection" class="mdl-card mdl-shadow--2dp">
+          <div class="mdl-card__title"><h2 class="mdl-card__title-text">Add Recurring Cost</h2></div>
+          <div class="mdl-card__supporting-text">
+            
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+              <input class="mdl-textfield__input" type="text" id="recName">
+              <label class="mdl-textfield__label" for="recName">Item Name (Rent, Subscription, Loan...)</label>
+            </div>
+            
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+              <input class="mdl-textfield__input" type="number" pattern="-?[0-9]*(\.[0-9]+)?" id="recAmount">
+              <label class="mdl-textfield__label" for="recAmount">Amount</label>
+            </div>
 
-    <!-- Investments -->
-    <section id="investSection" class="card hidden mdl-shadow--2dp">
-      <h3>Monthly Investments</h3>
-      <input id="inv_sip" type="number" placeholder="SIP monthly" />
-      <input id="inv_stocks" type="number" placeholder="Stocks monthly" />
-      <input id="inv_other" type="number" placeholder="Other monthly" />
-      <div class="row">
-        <button id="saveInvest" class="mdl-button mdl-js-button mdl-button--raised">Save Investments</button>
-        <button id="cancelInvest" class="mdl-button mdl-js-button">Cancel</button>
-      </div>
-    </section>
+            <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="recMonthly">
+              <input type="radio" id="recMonthly" class="mdl-radio__button" name="recFrequency" value="monthly" checked>
+              <span class="mdl-radio__label">Monthly Cost</span>
+            </label>
+            <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="recYearly">
+              <input type="radio" id="recYearly" class="mdl-radio__button" name="recFrequency" value="yearly">
+              <span class="mdl-radio__label">Yearly Cost</span>
+            </label>
 
-    <!-- History -->
-    <section id="historySection" class="card hidden mdl-shadow--2dp">
-      <h3>History</h3>
-      <div id="monthsList"></div>
-      <div id="monthDetail"></div>
-      <div class="row">
-        <button id="exportCSV" class="mdl-button mdl-js-button">Export CSV</button>
-        <button id="clearAll" class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent">Clear All Data</button>
+            <div id="yearlyDueMonthInput" class="hidden" style="margin-top:15px;">
+              <label for="recDueMonth">Yearly Due Month:</label>
+              <select id="recDueMonth" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </select>
+            </div>
+
+            <button id="addRecurringItemBtn" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" style="margin-top: 15px;">Save Recurring Item</button>
+          </div>
+        </section>
+        
+        <section id="recurringListSection" class="mdl-card mdl-shadow--2dp">
+          <div class="mdl-card__title"><h2 class="mdl-card__title-text">Saved Recurring Items</h2></div>
+          <div class="mdl-card__supporting-text">
+            <ul id="recurringItemList" class="mdl-list">
+              </ul>
+          </div>
+        </section>
       </div>
-    </section>
-  </main>
+
+      <div class="mdl-tabs__panel" id="history-panel">
+        <section id="historySection" class="mdl-card mdl-shadow--2dp">
+          <div class="mdl-card__title"><h2 class="mdl-card__title-text">History Overview</h2></div>
+          <div class="mdl-card__supporting-text">
+            <div id="monthsList">
+              </div>
+            <div id="monthDetail" style="margin-top: 20px;">
+              </div>
+            <div class="row" style="margin-top: 20px;">
+              <button id="exportCSV" class="mdl-button mdl-js-button mdl-button--raised">Export CSV</button>
+              <button id="clearAll" class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent">Clear All Data</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+    </div> </main>
 
   <footer class="footer">SmartFinance · Offline PWA · Material-style</footer>
+
+  <button id="quickAddExpenseFAB" class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored floating-btn">
+    <i class="material-icons">add</i>
+  </button>
 
   <script src="db.js"></script>
   <script src="app.js"></script>
