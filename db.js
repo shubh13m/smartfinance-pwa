@@ -65,6 +65,21 @@ async function listMonths(){
   });
 }
 
+// 🆕 NEW FUNCTION: Clears all data from the database
+async function clearAllData(){
+  const database = await openDB();
+  return new Promise((res,rej)=>{
+    const tx = database.transaction(DB_STORE,'readwrite');
+    const store = tx.objectStore(DB_STORE);
+    // Use the clear method to delete all records in the object store
+    const req = store.clear(); 
+    req.onsuccess = ()=> res(true);
+    req.onerror = ()=> rej(req.error);
+  });
+}
+// ----------------------------------------------------
+
+
 // Ensure month object exists and has new income structure:
 // income: { base: Number, extras: [ {label, amount} ] }
 async function ensureMonth(monthId){
@@ -74,8 +89,10 @@ async function ensureMonth(monthId){
       id: monthId,
       income: { base: 0, extras: [] },
       daily: [], // list of {amount,category,note,date,ts}
-      monthlyRecurring: {rent:0,emi:0,bills:0,other:0},
-      yearlyRecurringDue: [], // list of {name,amount,month} where month is 1-12
+      // Note: If you want to use the new recurring structure (recurringMonthly/recurringYearly)
+      // that we used in app.js, these lines should be updated:
+      monthlyRecurring: {rent:0,emi:0,bills:0,other:0}, // <-- Old object structure
+      yearlyRecurringDue: [], // <-- Old array name
       investments: {sip:0,stocks:0,other:0}
     };
     await saveMonth(m);
