@@ -1,4 +1,5 @@
-// app.js - Final Version: Includes Category Management, Effective Monthly Recurring Cost, and Seamless PWA Update Handler
+// app.js - Final Version: Includes Category Management, Effective Monthly Recurring Cost, 
+// and Seamless PWA Update Handler - FIXED: Added back missing Event Listeners
 
 (async function(){
   
@@ -23,7 +24,6 @@
   const expenseDisplay = document.getElementById('expenseDisplay');
   const monthlyRecurringDisplay = document.getElementById('monthlyRecurringDisplay');
   const yearlyDueThisMonthDisplay = document.getElementById('yearlyDueThisMonthDisplay');
-  // 🆕 NEW: Reference for Effective Monthly Recurring Cost
   const effectiveMonthlyRecurringDisplay = document.getElementById('effectiveMonthlyRecurringDisplay');
   const savedDisplay = document.getElementById('savedDisplay');
 
@@ -64,13 +64,13 @@
   
   // PWA Install & Update Prompts
   const installBtn = document.getElementById('installBtn');
-  // 🆕 NEW: Reference for the update bar in index.html
   const updateBar = document.getElementById('updateBar'); 
   let deferredPrompt;
 
   // --- State & Helpers ---
   let viewingMonth = new Date().toISOString().slice(0,7); // e.g. "2025-12"
 
+  function getMonthIdFromDate(dateStr) { return dateStr.slice(0, 7); }
   function setMonthLabel(id){
     const [y,m] = id.split('-');
     const date = new Date(Number(y), Number(m)-1, 1);
@@ -93,15 +93,17 @@
         });
     });
 
-    categorySuggestions.innerHTML = '';
-    
-    const sortedCategories = Array.from(uniqueCategories).sort();
+    // Assume categorySuggestions exists and is a datalist element
+    if (categorySuggestions) {
+      categorySuggestions.innerHTML = '';
+      const sortedCategories = Array.from(uniqueCategories).sort();
 
-    sortedCategories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat;
-        categorySuggestions.appendChild(option);
-    });
+      sortedCategories.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat;
+          categorySuggestions.appendChild(option);
+      });
+    }
   }
   
   // --- NEW FUNCTION: Calculate Effective Monthly Cost ---
@@ -111,17 +113,40 @@
       const monthlyTotal = sumAmounts(m.recurringMonthly);
       const yearlyTotal = sumAmounts(m.recurringYearly);
       
-      // Calculate the yearly equivalent divided by 12 months
       const yearlyMonthlyEquivalent = yearlyTotal / 12;
       
       const effectiveTotal = monthlyTotal + yearlyMonthlyEquivalent;
       
       return effectiveTotal;
   }
-  // ----------------------------------------------------
 
+  // Delete Recurring Item (needs to be defined before calling)
+  async function deleteRecurringItem(event) {
+    if (!confirm('Are you sure you want to delete this recurring item?')) return;
+    const btn = event.currentTarget;
+    const indexToDelete = btn.dataset.index;
+    const type = btn.dataset.type;
 
-  // --- Rendering Functions (No logic change) ---
+    const m = await ensureMonth(viewingMonth); 
+
+    if (type === 'monthly') {
+      m.recurringMonthly.splice(indexToDelete, 1);
+    } else if (type === 'yearly') {
+      m.recurringYearly.splice(indexToDelete, 1);
+    }
+
+    await saveMonth(m);
+    refreshDashboard();
+  }
+  
+  // populate month selects for recurring yearly due month
+  function populateMonthSelects(){
+    const months = Array.from({length:12},(_,i)=>({v:i+1,n:getMonthName(i+1)}));
+    recDueMonth.innerHTML = '<option value="">due month</option>';
+    months.forEach(m=>{
+      const opt = document.createElement('option'); opt.value = m.v; opt.textContent = m.n; recDueMonth.appendChild(opt);
+    });
+  }
 
   async function renderRecurringList(){
     const m = await ensureMonth(viewingMonth);
@@ -181,8 +206,7 @@
     });
   }
 
-  // --- Main Refresh (Updated for Effective Cost) ---
-
+  // --- Main Refresh ---
   async function refreshDashboard(){
     setMonthLabel(viewingMonth);
     const m = await ensureMonth(viewingMonth);
@@ -206,7 +230,6 @@
         .filter(item => Number(item.month) === currentMonthNum)
         .reduce((sum, item) => sum + Number(item.amount || 0), 0);
         
-    // Calculate and display Effective Monthly Recurring Cost
     const effectiveMonthlyCost = await calculateEffectiveMonthlyCost(viewingMonth);
 
     // Total Outflow
@@ -215,7 +238,6 @@
     expenseDisplay.textContent = fmt(dailyTotal);
     monthlyRecurringDisplay.textContent = fmt(monthlyRecurringTotal);
     yearlyDueThisMonthDisplay.textContent = fmt(yearlyDueThisMonthTotal);
-    // Display the new metric
     effectiveMonthlyRecurringDisplay.textContent = fmt(effectiveMonthlyCost);
 
     // 3. SAVINGS
@@ -228,13 +250,76 @@
     await renderExpenseList(viewingMonth);
     await renderRecurringList();
     await populateCategoryDatalist();
+    await renderHistory(); // Ensure history is also refreshed
   }
   
-  // --- Event Handlers (Expense Add Modified for cleanup) ---
+  // --- HISTORY RENDERING (Placeholder) ---
+  async function renderHistory(){
+    const monthIds = await listMonths();
+    monthsList.innerHTML = '';
+    monthDetail.innerHTML = '';
+    
+    monthIds.sort().reverse().forEach(id => {
+      const btn = document.createElement('button');
+      btn.className = 'mdl-button mdl-js-button mdl-button--raised';
+      btn.textContent = setMonthLabel(id);
+      btn.dataset.monthId = id;
+      btn.addEventListener('click', async () => {
+        const m = await getMonth(id);
+        monthDetail.innerHTML = `<h3>Summary for ${setMonthLabel(id)}</h3><pre>${JSON.stringify(m, null, 2)}</pre>`;
+      });
+      monthsList.appendChild(btn);
+    });
+  }
+  
+  // 🆕 NEW: Core Event Handlers (RE-ADDED)
+  
+  // 1. Month Navigation
+  prevMonthBtn.addEventListener('click', () => {
+    let [y, m] = viewingMonth.split('-').map(Number);
+    m -= 1;
+    if (m === 0) { m = 12; y -= 1; }
+    viewingMonth = `${y}-${String(m).padStart(2, '0')}`;
+    refreshDashboard();
+  });
 
-  // ... (navigation, income listeners remain the same) ...
+  nextMonthBtn.addEventListener('click', () => {
+    let [y, m] = viewingMonth.split('-').map(Number);
+    m += 1;
+    if (m === 13) { m = 1; y += 1; }
+    viewingMonth = `${y}-${String(m).padStart(2, '0')}`;
+    refreshDashboard();
+  });
 
-  // Add expense
+  // 2. Income/Extra Income
+  saveIncomeBtn.addEventListener('click', async () => {
+    const amount = Number(incomeInput.value || 0);
+    if (amount < 0) { alert('Income must be non-negative.'); return; }
+    
+    const m = await ensureMonth(viewingMonth);
+    m.income.base = amount;
+    await saveMonth(m);
+    refreshDashboard();
+    alert('Base Income saved!');
+  });
+
+  addExtraIncomeBtn.addEventListener('click', async () => {
+    const label = (extraLabel.value || 'Extra').trim();
+    const amount = Number(extraAmount.value || 0);
+    
+    if (!label || amount <= 0) { alert('Enter a valid label and positive amount.'); return; }
+    
+    const m = await ensureMonth(viewingMonth);
+    m.income.extras.push({ label, amount });
+    await saveMonth(m);
+    
+    extraLabel.value = '';
+    extraAmount.value = '';
+    refreshDashboard();
+    alert('Extra Income added!');
+  });
+  
+  // 3. Add Expense (Your existing handler)
   addExpBtn.addEventListener('click', async ()=>{
     const amount = Number(expAmount.value || 0);
     const category = (expCategory.value || 'Miscellaneous').trim();
@@ -250,7 +335,6 @@
     
     expAmount.value=''; expCategory.value=''; expNote.value='';
     
-    // CRITICAL MDL FIX: Manually clear the active/dirty state of MDL inputs
     const inputs = [expAmount, expCategory, expNote];
     inputs.forEach(input => {
         const parent = input.closest('.mdl-textfield');
@@ -265,51 +349,73 @@
     
     alert('Expense saved');
   });
-  
-  // ... (Existing FAB, Recurring, and History listeners remain the same) ...
-  
-  // Delete Recurring Item (needs to be defined before calling)
-  async function deleteRecurringItem(event) {
-    if (!confirm('Are you sure you want to delete this recurring item?')) return;
-    const btn = event.currentTarget;
-    const indexToDelete = btn.dataset.index;
-    const type = btn.dataset.type;
 
-    const m = await ensureMonth(viewingMonth); 
+  // 4. Recurring Item Setup
+  recFrequencyMonthly.addEventListener('change', () => { yearlyDueMonthInput.classList.add('hidden'); });
+  recFrequencyYearly.addEventListener('change', () => { yearlyDueMonthInput.classList.remove('hidden'); });
 
-    if (type === 'monthly') {
-      m.recurringMonthly.splice(indexToDelete, 1);
-    } else if (type === 'yearly') {
-      m.recurringYearly.splice(indexToDelete, 1);
+  addRecurringItemBtn.addEventListener('click', async () => {
+    const name = (recName.value || 'Item').trim();
+    const amount = Number(recAmount.value || 0);
+    const frequency = document.querySelector('input[name="recFrequency"]:checked').value;
+    
+    if (!name || amount <= 0) { alert('Enter a valid name and positive amount.'); return; }
+
+    const m = await ensureMonth(viewingMonth);
+    const item = { name, amount };
+
+    if (frequency === 'monthly') {
+      m.recurringMonthly.push(item);
+    } else { // yearly
+      const dueMonth = Number(recDueMonth.value);
+      if (!dueMonth) { alert('Please select a due month for yearly cost.'); return; }
+      item.month = dueMonth;
+      m.recurringYearly.push(item);
     }
-
+    
     await saveMonth(m);
+    
+    recName.value = '';
+    recAmount.value = '';
+    recDueMonth.value = '';
     refreshDashboard();
-  }
-
-
-  // populate month selects for recurring yearly due month
-  function populateMonthSelects(){
-    const months = Array.from({length:12},(_,i)=>({v:i+1,n:getMonthName(i+1)}));
-    recDueMonth.innerHTML = '<option value="">due month</option>';
-    months.forEach(m=>{
-      const opt = document.createElement('option'); opt.value = m.v; opt.textContent = m.n; recDueMonth.appendChild(opt);
-    });
-  }
+    alert('Recurring item saved!');
+  });
   
-  // 🆕 NEW FUNCTION: Show the update prompt bar
+  // 5. FAB and History Actions
+  quickAddExpenseFAB.addEventListener('click', () => {
+      // Logic to switch to the Expenses tab (#expenses-panel)
+      const expensesTabLink = document.querySelector('a[href="#expenses-panel"]');
+      if (expensesTabLink) {
+          expensesTabLink.click();
+      }
+  });
+
+  exportCSV.addEventListener('click', () => {
+      alert('Export to CSV functionality not yet implemented.');
+  });
+  
+  clearAll.addEventListener('click', async () => {
+    if(confirm('Are you sure you want to permanently delete ALL data? This cannot be undone.')) {
+      await clearAllData(); // Assume this function exists in db.js
+      alert('All data cleared.');
+      window.location.reload();
+    }
+  });
+
+
+  // 6. PWA Update Handler (Your existing function)
   function showUpdatePrompt() {
     if (updateBar) {
         updateBar.classList.remove('hidden');
         updateBar.querySelector('#reloadAppBtn').addEventListener('click', () => {
-            // Reload the page to load the new Service Worker and assets
             window.location.reload(); 
         });
     }
   }
 
 
-  // --- Initialization (Updated with SW listener) ---
+  // --- Initialization ---
   
   // Set default date for expense input
   expDate.value = new Date().toISOString().slice(0,10);
@@ -324,12 +430,10 @@
       .then(reg => {
         console.log('SW registration successful');
 
-        // Check for updates every time the app loads
         reg.addEventListener('updatefound', () => {
             const newWorker = reg.installing;
             newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // Show a message to the user that an update is ready
                     showUpdatePrompt(); 
                 }
             });
@@ -353,6 +457,5 @@
       }
     });
   }
-  // --- END PWA Update Handler ---
 
 })();
