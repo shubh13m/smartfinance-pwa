@@ -213,7 +213,20 @@
         </section>
       </div>
 
-    </div> </main>
+    </div>
+    <div id="updateBar" class="mdl-shadow--4dp hidden" 
+         style="position: fixed; bottom: 0; left: 0; right: 0; 
+                background: var(--primary); color: white; padding: 12px; 
+                display: flex; justify-content: space-between; align-items: center; z-index: 1000;">
+        <span>A new version of SmartFinance is available.</span>
+        <button id="reloadAppBtn" 
+                class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+                style="color: white; background-color: var(--success) !important;">
+            Reload Now
+        </button>
+    </div>
+  </main>
+  
 
   <footer class="footer">SmartFinance · Offline PWA · Material-style</footer>
 
