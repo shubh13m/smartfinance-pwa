@@ -1,5 +1,4 @@
-// app.js - Final Version: Includes Category Management, Effective Monthly Recurring Cost, 
-// and Seamless PWA Update Handler - FIXED: Added back missing Event Listeners
+// app.js - FIX: Expense handler now calls refreshDashboard unconditionally.
 
 (async function(){
   
@@ -344,8 +343,9 @@
         }
     });
     
-    if(mid === viewingMonth) refreshDashboard();
-    else populateCategoryDatalist(); 
+    // 🟢 FIX 1: Always refresh the dashboard to update totals, regardless of month
+    refreshDashboard(); 
+    populateCategoryDatalist(); 
     
     alert('Expense saved');
   });
