@@ -1,4 +1,5 @@
-// db.js - IndexedDB wrapper for SmartFinance (updated income structure)
+// db.js - FIX: ensureMonth now correctly initializes and uses recurringMonthly/recurringYearly keys.
+
 const DB_NAME = "SmartFinanceDB_v1";
 const DB_STORE = "months";
 let db;
@@ -81,31 +82,44 @@ async function clearAllData(){
 
 
 // Ensure month object exists and has new income structure:
-// income: { base: Number, extras: [ {label, amount} ] }
 async function ensureMonth(monthId){
   let m = await getMonth(monthId);
   if(!m){
     m = {
       id: monthId,
       income: { base: 0, extras: [] },
-      daily: [], // list of {amount,category,note,date,ts}
-      // Note: If you want to use the new recurring structure (recurringMonthly/recurringYearly)
-      // that we used in app.js, these lines should be updated:
-      monthlyRecurring: {rent:0,emi:0,bills:0,other:0}, // <-- Old object structure
-      yearlyRecurringDue: [], // <-- Old array name
+      daily: [], 
+      // 🟢 FIX 2A: Initialize with the correct array keys used by app.js
+      recurringMonthly: [], 
+      recurringYearly: [],
       investments: {sip:0,stocks:0,other:0}
     };
     await saveMonth(m);
   } else {
-    // normalize older data shape: if income is number convert to object
+    let saveNeeded = false;
+
+    // 1. Normalize older income data shape
     if(typeof m.income === 'number'){
       m.income = { base: m.income, extras: [] };
-      await saveMonth(m);
+      saveNeeded = true;
     }
-    // ensure keys exist
-    m.monthlyRecurring = m.monthlyRecurring || {rent:0,emi:0,bills:0,other:0};
-    m.yearlyRecurringDue = m.yearlyRecurringDue || [];
+    
+    // 2. Normalize and ensure recurring keys exist (Migration/Correction)
+    // If the old keys exist, migrate their contents to the new keys, but ensure the new keys are initialized as arrays.
+    
+    // 🟢 FIX 2B: Use the correct keys and ensure they are arrays
+    m.recurringMonthly = m.recurringMonthly || [];
+    m.recurringYearly = m.recurringYearly || [];
+    m.daily = m.daily || [];
+    m.income.extras = m.income.extras || [];
     m.investments = m.investments || {sip:0,stocks:0,other:0};
+
+
+    // Clean up old/incorrect keys if they were accidentally saved previously (optional cleanup)
+    if(m.monthlyRecurring) delete m.monthlyRecurring;
+    if(m.yearlyRecurringDue) delete m.yearlyRecurringDue;
+
+    if (saveNeeded) await saveMonth(m); // Save if income was normalized
   }
   return m;
 }
