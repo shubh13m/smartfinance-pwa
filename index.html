@@ -4,8 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SmartFinance — PWA</title>
+  
   <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -119,8 +122,10 @@
 
       <div class="mdl-tabs__panel" id="history-panel">
         <section id="historySection" class="mdl-card mdl-shadow--2dp">
-          <div class="mdl-card__title"><h2 class="mdl-card__title-text">History</h2></div>
-          <div class="mdl-card__supporting-text"><div id="monthsList"></div><div id="monthDetail" style="margin-top: 20px;"></div>
+          <div class="mdl-card__title"><h2 class="mdl-card__title-text">History Overview</h2></div>
+          <div class="mdl-card__supporting-text">
+            <div id="monthsList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+            <div id="monthDetail" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;"></div>
             <div class="row" style="margin-top: 20px;">
               <button id="exportCSV" class="mdl-button mdl-js-button mdl-button--raised">Export CSV</button>
               <button id="clearAll" class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent">Clear All</button>
@@ -137,7 +142,7 @@
   </main>
   
   <footer class="footer">SmartFinance · Offline PWA</footer>
-  <button id="quickAddExpenseFAB" class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored floating-btn"><i class="material-icons">+</i></button>
+  <button id="quickAddExpenseFAB" class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored floating-btn"><i class="material-icons">add</i></button>
   
   <script src="db.js"></script>
   <script src="app.js"></script>
