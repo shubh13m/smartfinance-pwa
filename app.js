@@ -1,13 +1,8 @@
-// app.js - FIX: Unique ID (ts) based deletion to prevent incorrect index removal.
+// app.js - Updated with 50/20/20/10 Financial Strategy Logic
 
 (async function(){
   
-  const DEFAULT_CATEGORIES = [
-    'Housing', 'Food & Dining', 'Transportation', 'Utilities', 
-    'Personal Care', 'Entertainment', 'Health', 'Debt & Loans', 
-    'Savings & Invest', 'Miscellaneous'
-  ];
-  
+  const DEFAULT_CATEGORIES = ['Housing', 'Food & Dining', 'Transportation', 'Utilities', 'Personal Care', 'Entertainment', 'Health', 'Debt & Loans', 'Savings & Invest', 'Miscellaneous'];
   await openDB();
 
   // --- Core DOM References ---
@@ -21,12 +16,20 @@
   const effectiveMonthlyRecurringDisplay = document.getElementById('effectiveMonthlyRecurringDisplay');
   const savedDisplay = document.getElementById('savedDisplay');
 
+  // New Strategy DOM References
+  const goalExpDisplay = document.getElementById('goalExpDisplay');
+  const goalInvDisplay = document.getElementById('goalInvDisplay');
+  const goalSavDisplay = document.getElementById('goalSavDisplay');
+  const goalPreDisplay = document.getElementById('goalPreDisplay');
+  const surplusDisplay = document.getElementById('surplusDisplay');
+  const totalPowerDisplay = document.getElementById('totalPowerDisplay');
+  const surplusLabel = document.getElementById('surplusLabel');
+
   const incomeInput = document.getElementById('incomeInput');
   const saveIncomeBtn = document.getElementById('saveIncome');
   const extraLabel = document.getElementById('extraLabel');
   const extraAmount = document.getElementById('extraAmount');
   const addExtraIncomeBtn = document.getElementById('addExtraIncome');
-
   const addExpBtn = document.getElementById('addExpBtn');
   const expAmount = document.getElementById('expAmount');
   const expCategory = document.getElementById('expCategory');
@@ -34,7 +37,6 @@
   const expNote = document.getElementById('expNote');
   const expDate = document.getElementById('expDate');
   const currentMonthExpenseList = document.getElementById('currentMonthExpenseList');
-  
   const recName = document.getElementById('recName');
   const recAmount = document.getElementById('recAmount');
   const recFrequencyMonthly = document.getElementById('recMonthly');
@@ -43,7 +45,6 @@
   const recDueMonth = document.getElementById('recDueMonth');
   const addRecurringItemBtn = document.getElementById('addRecurringItemBtn');
   const recurringItemList = document.getElementById('recurringItemList');
-
   const prevMonthBtn = document.getElementById('prevMonthBtn');
   const nextMonthBtn = document.getElementById('nextMonthBtn');
   const quickAddExpenseFAB = document.getElementById('quickAddExpenseFAB');
@@ -51,11 +52,9 @@
   const clearAll = document.getElementById('clearAll');
   const monthsList = document.getElementById('monthsList');
   const monthDetail = document.getElementById('monthDetail');
-  
   const installBtn = document.getElementById('installBtn');
   const updateBar = document.getElementById('updateBar'); 
   let deferredPrompt;
-
   let viewingMonth = new Date().toISOString().slice(0,7);
 
   function getMonthIdFromDate(dateStr) { return dateStr.slice(0, 7); }
@@ -71,15 +70,11 @@
   async function populateCategoryDatalist(){
     const allMonths = await listMonths();
     const uniqueCategories = new Set(DEFAULT_CATEGORIES);
-    allMonths.forEach(m => {
-        (m.daily || []).forEach(e => { if (e.category) uniqueCategories.add(e.category.trim()); });
-    });
+    allMonths.forEach(m => { (m.daily || []).forEach(e => { if (e.category) uniqueCategories.add(e.category.trim()); }); });
     if (categorySuggestions) {
       categorySuggestions.innerHTML = '';
       Array.from(uniqueCategories).sort().forEach(cat => {
-          const option = document.createElement('option');
-          option.value = cat;
-          categorySuggestions.appendChild(option);
+          const option = document.createElement('option'); option.value = cat; categorySuggestions.appendChild(option);
       });
     }
   }
@@ -91,21 +86,14 @@
       return monthlyTotal + (yearlyTotal / 12);
   }
 
-  // 🟢 FIX: Deletion now uses unique 'ts' ID instead of index
   async function deleteRecurringItem(event) {
-    if (!confirm('Are you sure you want to delete this recurring item?')) return;
+    if (!confirm('Are you sure?')) return;
     const btn = event.currentTarget;
     const idToDelete = Number(btn.dataset.id);
     const type = btn.dataset.type;
-
     const m = await ensureMonth(viewingMonth); 
-
-    if (type === 'monthly') {
-      m.recurringMonthly = m.recurringMonthly.filter(item => (item.ts || 0) !== idToDelete);
-    } else if (type === 'yearly') {
-      m.recurringYearly = m.recurringYearly.filter(item => (item.ts || 0) !== idToDelete);
-    }
-
+    if (type === 'monthly') { m.recurringMonthly = m.recurringMonthly.filter(item => (item.ts || 0) !== idToDelete); }
+    else if (type === 'yearly') { m.recurringYearly = m.recurringYearly.filter(item => (item.ts || 0) !== idToDelete); }
     await saveMonth(m);
     refreshDashboard();
   }
@@ -113,70 +101,42 @@
   function populateMonthSelects(){
     const months = Array.from({length:12},(_,i)=>({v:i+1,n:getMonthName(i+1)}));
     recDueMonth.innerHTML = '<option value="">due month</option>';
-    months.forEach(m=>{
-      const opt = document.createElement('option'); opt.value = m.v; opt.textContent = m.n; recDueMonth.appendChild(opt);
-    });
+    months.forEach(m=>{ const opt = document.createElement('option'); opt.value = m.v; opt.textContent = m.n; recDueMonth.appendChild(opt); });
   }
 
-  // 🟢 FIX: Rendering logic attaches unique 'ts' to buttons
   async function renderRecurringList(){
     const m = await ensureMonth(viewingMonth);
     recurringItemList.innerHTML = '';
-    
     const monthly = m.recurringMonthly || [];
     const yearly = m.recurringYearly || [];
-
     if(monthly.length === 0 && yearly.length === 0){
-        recurringItemList.innerHTML = `<div class="muted" style="padding: 16px;">No recurring items saved.</div>`;
+        recurringItemList.innerHTML = `<div class="muted" style="padding: 16px;">No recurring items.</div>`;
         return;
     }
-
     const createItem = (item, type) => {
         const li = document.createElement('li');
         li.className = 'mdl-list__item mdl-list__item--two-line';
         const label = type === 'yearly' ? `Yearly (${getMonthName(item.month)})` : 'Monthly';
-        // Assign a fallback ts if it doesn't exist for old data
         const itemTs = item.ts || 0; 
-        li.innerHTML = `
-            <span class="mdl-list__item-primary-content">
-                <span>${item.name}</span>
-                <span class="mdl-list__item-sub-title">${label} - ${fmt(item.amount)}</span>
-            </span>
-            <span class="mdl-list__item-secondary-content">
-                <button class="mdl-button mdl-js-button mdl-button--icon delete-rec" data-id="${itemTs}" data-type="${type}">
-                    <i class="material-icons" style="color: #F44336;">delete</i>
-                </button>
-            </span>
-        `;
+        li.innerHTML = `<span class="mdl-list__item-primary-content"><span>${item.name}</span><span class="mdl-list__item-sub-title">${label} - ${fmt(item.amount)}</span></span>
+            <span class="mdl-list__item-secondary-content"><button class="mdl-button mdl-js-button mdl-button--icon delete-rec" data-id="${itemTs}" data-type="${type}"><i class="material-icons" style="color:#F44336;">delete</i></button></span>`;
         return li;
     };
-
     monthly.forEach(item => recurringItemList.appendChild(createItem(item, 'monthly')));
     yearly.forEach(item => recurringItemList.appendChild(createItem(item, 'yearly')));
-    
-    document.querySelectorAll('.delete-rec').forEach(btn => {
-        btn.addEventListener('click', deleteRecurringItem);
-    });
+    document.querySelectorAll('.delete-rec').forEach(btn => btn.addEventListener('click', deleteRecurringItem));
   }
 
   async function renderExpenseList(monthId){
     const m = await getMonth(monthId);
     currentMonthExpenseList.innerHTML = '';
     const expenses = m.daily || [];
-    if(expenses.length === 0){
-      currentMonthExpenseList.innerHTML = `<div class="muted" style="padding: 16px;">No daily expenses recorded.</div>`;
-      return;
-    }
+    if(expenses.length === 0){ currentMonthExpenseList.innerHTML = `<div class="muted" style="padding: 16px;">No daily expenses.</div>`; return; }
     expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
     expenses.forEach(e => {
         const li = document.createElement('li');
         li.className = 'mdl-list__item mdl-list__item--two-line';
-        li.innerHTML = `
-            <span class="mdl-list__item-primary-content">
-                <span style="color: #F44336; font-weight: bold;">${fmt(e.amount)}</span>
-                <span class="mdl-list__item-sub-title">${e.category} | ${e.note || ''} (${e.date})</span>
-            </span>
-        `;
+        li.innerHTML = `<span class="mdl-list__item-primary-content"><span style="color:#F44336; font-weight:bold;">${fmt(e.amount)}</span><span class="mdl-list__item-sub-title">${e.category} | ${e.note || ''} (${e.date})</span></span>`;
         currentMonthExpenseList.appendChild(li);
     });
   }
@@ -208,6 +168,26 @@
     monthlyRecurringDisplay.textContent = fmt(monthlyRecurringTotal);
     yearlyDueThisMonthDisplay.textContent = fmt(yearlyDueThisMonthTotal);
     effectiveMonthlyRecurringDisplay.textContent = fmt(effectiveMonthlyCost);
+
+    // 🟢 NEW: Financial Strategy Calculations (50/20/20/10)
+    const goalExp = totalIncome * 0.50;
+    const goalInv = totalIncome * 0.20;
+    const goalSav = totalIncome * 0.20;
+    const goalPre = totalIncome * 0.10;
+
+    goalExpDisplay.textContent = fmt(goalExp);
+    goalInvDisplay.textContent = fmt(goalInv);
+    goalSavDisplay.textContent = fmt(goalSav);
+    goalPreDisplay.textContent = fmt(goalPre);
+
+    // Surplus: Gap between 50% Goal and Actual Effective Burden
+    const surplus = Math.max(0, goalExp - effectiveMonthlyCost);
+    surplusDisplay.textContent = fmt(surplus);
+    surplusLabel.textContent = effectiveMonthlyCost > goalExp ? "Expense Overrun:" : "Expense Surplus:";
+    surplusDisplay.style.color = surplus > 0 ? "#4CAF50" : "#212121";
+
+    // Total Prepay Power
+    totalPowerDisplay.textContent = fmt(goalPre + surplus);
 
     const savings = totalIncome - totalOutflow;
     savedDisplay.textContent = fmt(savings);
@@ -285,19 +265,15 @@
   recFrequencyMonthly.addEventListener('change', () => { yearlyDueMonthInput.classList.add('hidden'); });
   recFrequencyYearly.addEventListener('change', () => { yearlyDueMonthInput.classList.remove('hidden'); });
 
-  // 🟢 FIX: Adding 'ts' property here for recurring items
   addRecurringItemBtn.addEventListener('click', async () => {
     const name = (recName.value || 'Item').trim();
     const amount = Number(recAmount.value || 0);
     const frequency = document.querySelector('input[name="recFrequency"]:checked').value;
     if (!name || amount <= 0) return;
-
     const m = await ensureMonth(viewingMonth);
     const item = { name, amount, ts: Date.now() };
-
-    if (frequency === 'monthly') {
-      m.recurringMonthly.push(item);
-    } else {
+    if (frequency === 'monthly') { m.recurringMonthly.push(item); }
+    else {
       const dueMonth = Number(recDueMonth.value);
       if (!dueMonth) { alert('Select due month'); return; }
       item.month = dueMonth;
@@ -315,10 +291,7 @@
   });
 
   clearAll.addEventListener('click', async () => {
-    if(confirm('Delete ALL data?')) {
-      await clearAllData();
-      window.location.reload();
-    }
+    if(confirm('Delete ALL data?')) { await clearAllData(); window.location.reload(); }
   });
 
   function showUpdatePrompt() {
