@@ -1,21 +1,16 @@
-// app.js - FIX: Expense handler now calls refreshDashboard unconditionally.
+// app.js - FIX: Unique ID (ts) based deletion to prevent incorrect index removal.
 
 (async function(){
   
-  // --- NEW CONSTANT: Default Categories ---
   const DEFAULT_CATEGORIES = [
     'Housing', 'Food & Dining', 'Transportation', 'Utilities', 
     'Personal Care', 'Entertainment', 'Health', 'Debt & Loans', 
     'Savings & Invest', 'Miscellaneous'
   ];
-  // ----------------------------------------
   
-  // Assume openDB, ensureMonth, saveMonth, listMonths, getMonth, getMonthIdFromDate exist in db.js
   await openDB();
 
-  // --- Core DOM References (Updated) ---
-  
-  // Dashboard Displays
+  // --- Core DOM References ---
   const currentMonthDisplay = document.getElementById('currentMonthDisplay');
   const baseIncomeDisplay = document.getElementById('baseIncomeDisplay');
   const extraIncomeDisplay = document.getElementById('extraIncomeDisplay');
@@ -26,14 +21,12 @@
   const effectiveMonthlyRecurringDisplay = document.getElementById('effectiveMonthlyRecurringDisplay');
   const savedDisplay = document.getElementById('savedDisplay');
 
-  // Income Card
   const incomeInput = document.getElementById('incomeInput');
   const saveIncomeBtn = document.getElementById('saveIncome');
   const extraLabel = document.getElementById('extraLabel');
   const extraAmount = document.getElementById('extraAmount');
   const addExtraIncomeBtn = document.getElementById('addExtraIncome');
 
-  // Expense Panel
   const addExpBtn = document.getElementById('addExpBtn');
   const expAmount = document.getElementById('expAmount');
   const expCategory = document.getElementById('expCategory');
@@ -42,7 +35,6 @@
   const expDate = document.getElementById('expDate');
   const currentMonthExpenseList = document.getElementById('currentMonthExpenseList');
   
-  // Recurring Panel
   const recName = document.getElementById('recName');
   const recAmount = document.getElementById('recAmount');
   const recFrequencyMonthly = document.getElementById('recMonthly');
@@ -52,7 +44,6 @@
   const addRecurringItemBtn = document.getElementById('addRecurringItemBtn');
   const recurringItemList = document.getElementById('recurringItemList');
 
-  // Navigation & Actions
   const prevMonthBtn = document.getElementById('prevMonthBtn');
   const nextMonthBtn = document.getElementById('nextMonthBtn');
   const quickAddExpenseFAB = document.getElementById('quickAddExpenseFAB');
@@ -61,13 +52,11 @@
   const monthsList = document.getElementById('monthsList');
   const monthDetail = document.getElementById('monthDetail');
   
-  // PWA Install & Update Prompts
   const installBtn = document.getElementById('installBtn');
   const updateBar = document.getElementById('updateBar'); 
   let deferredPrompt;
 
-  // --- State & Helpers ---
-  let viewingMonth = new Date().toISOString().slice(0,7); // e.g. "2025-12"
+  let viewingMonth = new Date().toISOString().slice(0,7);
 
   function getMonthIdFromDate(dateStr) { return dateStr.slice(0, 7); }
   function setMonthLabel(id){
@@ -79,25 +68,15 @@
   function getMonthName(monthNum){ return new Date(2000, monthNum - 1, 1).toLocaleString(undefined, {month:'long'}); }
   function sumAmounts(list){ return (list || []).reduce((sum, item) => sum + Number(item.amount || 0), 0); }
   
-  // --- NEW FUNCTION: Populate Category Datalist ---
   async function populateCategoryDatalist(){
     const allMonths = await listMonths();
     const uniqueCategories = new Set(DEFAULT_CATEGORIES);
-
     allMonths.forEach(m => {
-        (m.daily || []).forEach(e => {
-            if (e.category) {
-                uniqueCategories.add(e.category.trim());
-            }
-        });
+        (m.daily || []).forEach(e => { if (e.category) uniqueCategories.add(e.category.trim()); });
     });
-
-    // Assume categorySuggestions exists and is a datalist element
     if (categorySuggestions) {
       categorySuggestions.innerHTML = '';
-      const sortedCategories = Array.from(uniqueCategories).sort();
-
-      sortedCategories.forEach(cat => {
+      Array.from(uniqueCategories).sort().forEach(cat => {
           const option = document.createElement('option');
           option.value = cat;
           categorySuggestions.appendChild(option);
@@ -105,40 +84,32 @@
     }
   }
   
-  // --- NEW FUNCTION: Calculate Effective Monthly Cost ---
   async function calculateEffectiveMonthlyCost(monthId) {
       const m = await ensureMonth(monthId);
-
       const monthlyTotal = sumAmounts(m.recurringMonthly);
       const yearlyTotal = sumAmounts(m.recurringYearly);
-      
-      const yearlyMonthlyEquivalent = yearlyTotal / 12;
-      
-      const effectiveTotal = monthlyTotal + yearlyMonthlyEquivalent;
-      
-      return effectiveTotal;
+      return monthlyTotal + (yearlyTotal / 12);
   }
 
-  // Delete Recurring Item (needs to be defined before calling)
+  // 🟢 FIX: Deletion now uses unique 'ts' ID instead of index
   async function deleteRecurringItem(event) {
     if (!confirm('Are you sure you want to delete this recurring item?')) return;
     const btn = event.currentTarget;
-    const indexToDelete = btn.dataset.index;
+    const idToDelete = Number(btn.dataset.id);
     const type = btn.dataset.type;
 
     const m = await ensureMonth(viewingMonth); 
 
     if (type === 'monthly') {
-      m.recurringMonthly.splice(indexToDelete, 1);
+      m.recurringMonthly = m.recurringMonthly.filter(item => (item.ts || 0) !== idToDelete);
     } else if (type === 'yearly') {
-      m.recurringYearly.splice(indexToDelete, 1);
+      m.recurringYearly = m.recurringYearly.filter(item => (item.ts || 0) !== idToDelete);
     }
 
     await saveMonth(m);
     refreshDashboard();
   }
   
-  // populate month selects for recurring yearly due month
   function populateMonthSelects(){
     const months = Array.from({length:12},(_,i)=>({v:i+1,n:getMonthName(i+1)}));
     recDueMonth.innerHTML = '<option value="">due month</option>';
@@ -147,33 +118,41 @@
     });
   }
 
+  // 🟢 FIX: Rendering logic attaches unique 'ts' to buttons
   async function renderRecurringList(){
     const m = await ensureMonth(viewingMonth);
-    const allRecs = [...m.recurringMonthly, ...m.recurringYearly];
-    
     recurringItemList.innerHTML = '';
-    if(allRecs.length === 0){
+    
+    const monthly = m.recurringMonthly || [];
+    const yearly = m.recurringYearly || [];
+
+    if(monthly.length === 0 && yearly.length === 0){
         recurringItemList.innerHTML = `<div class="muted" style="padding: 16px;">No recurring items saved.</div>`;
         return;
     }
 
-    allRecs.forEach((item, index) => {
+    const createItem = (item, type) => {
         const li = document.createElement('li');
         li.className = 'mdl-list__item mdl-list__item--two-line';
-        const type = item.month ? `Yearly (${getMonthName(item.month)})` : 'Monthly';
+        const label = type === 'yearly' ? `Yearly (${getMonthName(item.month)})` : 'Monthly';
+        // Assign a fallback ts if it doesn't exist for old data
+        const itemTs = item.ts || 0; 
         li.innerHTML = `
             <span class="mdl-list__item-primary-content">
                 <span>${item.name}</span>
-                <span class="mdl-list__item-sub-title">${type} - ${fmt(item.amount)}</span>
+                <span class="mdl-list__item-sub-title">${label} - ${fmt(item.amount)}</span>
             </span>
             <span class="mdl-list__item-secondary-content">
-                <button class="mdl-button mdl-js-button mdl-button--icon delete-rec" data-index="${index}" data-type="${item.month ? 'yearly' : 'monthly'}">
-                    <i class="material-icons">delete</i>
+                <button class="mdl-button mdl-js-button mdl-button--icon delete-rec" data-id="${itemTs}" data-type="${type}">
+                    <i class="material-icons" style="color: #F44336;">delete</i>
                 </button>
             </span>
         `;
-        recurringItemList.appendChild(li);
-    });
+        return li;
+    };
+
+    monthly.forEach(item => recurringItemList.appendChild(createItem(item, 'monthly')));
+    yearly.forEach(item => recurringItemList.appendChild(createItem(item, 'yearly')));
     
     document.querySelectorAll('.delete-rec').forEach(btn => {
         btn.addEventListener('click', deleteRecurringItem);
@@ -184,34 +163,29 @@
     const m = await getMonth(monthId);
     currentMonthExpenseList.innerHTML = '';
     const expenses = m.daily || [];
-
     if(expenses.length === 0){
-      currentMonthExpenseList.innerHTML = `<div class="muted" style="padding: 16px;">No daily expenses recorded for this month.</div>`;
+      currentMonthExpenseList.innerHTML = `<div class="muted" style="padding: 16px;">No daily expenses recorded.</div>`;
       return;
     }
-
     expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
-
     expenses.forEach(e => {
         const li = document.createElement('li');
         li.className = 'mdl-list__item mdl-list__item--two-line';
         li.innerHTML = `
             <span class="mdl-list__item-primary-content">
-                <span style="color: var(--danger); font-weight: bold;">${fmt(e.amount)}</span>
-                <span class="mdl-list__item-sub-title">Category: ${e.category} | Note: ${e.note || 'N/A'} (on ${e.date})</span>
+                <span style="color: #F44336; font-weight: bold;">${fmt(e.amount)}</span>
+                <span class="mdl-list__item-sub-title">${e.category} | ${e.note || ''} (${e.date})</span>
             </span>
         `;
         currentMonthExpenseList.appendChild(li);
     });
   }
 
-  // --- Main Refresh ---
   async function refreshDashboard(){
     setMonthLabel(viewingMonth);
     const m = await ensureMonth(viewingMonth);
     const currentMonthNum = Number(viewingMonth.split('-')[1]);
 
-    // 1. INCOME
     const baseIncome = Number(m.income.base || 0);
     const extrasTotal = sumAmounts(m.income.extras);
     const totalIncome = baseIncome + extrasTotal;
@@ -221,17 +195,13 @@
     extraIncomeDisplay.textContent = fmt(extrasTotal);
     totalIncomeDisplay.textContent = fmt(totalIncome);
 
-    // 2. EXPENSE CALCULATIONS
     const dailyTotal = sumAmounts(m.daily);
     const monthlyRecurringTotal = sumAmounts(m.recurringMonthly);
-
     const yearlyDueThisMonthTotal = m.recurringYearly
         .filter(item => Number(item.month) === currentMonthNum)
         .reduce((sum, item) => sum + Number(item.amount || 0), 0);
         
     const effectiveMonthlyCost = await calculateEffectiveMonthlyCost(viewingMonth);
-
-    // Total Outflow
     const totalOutflow = dailyTotal + monthlyRecurringTotal + yearlyDueThisMonthTotal;
 
     expenseDisplay.textContent = fmt(dailyTotal);
@@ -239,223 +209,145 @@
     yearlyDueThisMonthDisplay.textContent = fmt(yearlyDueThisMonthTotal);
     effectiveMonthlyRecurringDisplay.textContent = fmt(effectiveMonthlyCost);
 
-    // 3. SAVINGS
     const savings = totalIncome - totalOutflow;
     savedDisplay.textContent = fmt(savings);
-    savedDisplay.parentElement.classList.toggle('expense', savings < 0);
-    savedDisplay.parentElement.classList.toggle('saved', savings >= 0);
+    savedDisplay.parentElement.style.color = savings < 0 ? "#F44336" : "#4CAF50";
 
-    // 4. RENDER LISTS & CATEGORIES
     await renderExpenseList(viewingMonth);
     await renderRecurringList();
     await populateCategoryDatalist();
-    await renderHistory(); // Ensure history is also refreshed
+    await renderHistory();
   }
   
-  // --- HISTORY RENDERING (Placeholder) ---
   async function renderHistory(){
     const monthIds = await listMonths();
     monthsList.innerHTML = '';
-    monthDetail.innerHTML = '';
-    
     monthIds.sort().reverse().forEach(id => {
       const btn = document.createElement('button');
       btn.className = 'mdl-button mdl-js-button mdl-button--raised';
-      btn.textContent = setMonthLabel(id);
-      btn.dataset.monthId = id;
+      btn.textContent = id;
+      btn.style.margin = "4px";
       btn.addEventListener('click', async () => {
         const m = await getMonth(id);
-        monthDetail.innerHTML = `<h3>Summary for ${setMonthLabel(id)}</h3><pre>${JSON.stringify(m, null, 2)}</pre>`;
+        monthDetail.innerHTML = `<h3>Summary for ${id}</h3><pre>${JSON.stringify(m, null, 2)}</pre>`;
       });
       monthsList.appendChild(btn);
     });
   }
   
-  // 🆕 NEW: Core Event Handlers (RE-ADDED)
-  
-  // 1. Month Navigation
   prevMonthBtn.addEventListener('click', () => {
     let [y, m] = viewingMonth.split('-').map(Number);
-    m -= 1;
-    if (m === 0) { m = 12; y -= 1; }
+    m -= 1; if (m === 0) { m = 12; y -= 1; }
     viewingMonth = `${y}-${String(m).padStart(2, '0')}`;
     refreshDashboard();
   });
 
   nextMonthBtn.addEventListener('click', () => {
     let [y, m] = viewingMonth.split('-').map(Number);
-    m += 1;
-    if (m === 13) { m = 1; y += 1; }
+    m += 1; if (m === 13) { m = 1; y += 1; }
     viewingMonth = `${y}-${String(m).padStart(2, '0')}`;
     refreshDashboard();
   });
 
-  // 2. Income/Extra Income
   saveIncomeBtn.addEventListener('click', async () => {
     const amount = Number(incomeInput.value || 0);
-    if (amount < 0) { alert('Income must be non-negative.'); return; }
-    
     const m = await ensureMonth(viewingMonth);
     m.income.base = amount;
     await saveMonth(m);
     refreshDashboard();
-    alert('Base Income saved!');
+    alert('Income saved!');
   });
 
   addExtraIncomeBtn.addEventListener('click', async () => {
     const label = (extraLabel.value || 'Extra').trim();
     const amount = Number(extraAmount.value || 0);
-    
-    if (!label || amount <= 0) { alert('Enter a valid label and positive amount.'); return; }
-    
+    if (!label || amount <= 0) return;
     const m = await ensureMonth(viewingMonth);
-    m.income.extras.push({ label, amount });
+    m.income.extras.push({ label, amount, ts: Date.now() });
     await saveMonth(m);
-    
-    extraLabel.value = '';
-    extraAmount.value = '';
+    extraLabel.value = ''; extraAmount.value = '';
     refreshDashboard();
-    alert('Extra Income added!');
   });
   
-  // 3. Add Expense (Your existing handler)
   addExpBtn.addEventListener('click', async ()=>{
     const amount = Number(expAmount.value || 0);
     const category = (expCategory.value || 'Miscellaneous').trim();
-    
-    if(!amount || amount <= 0){ alert('Enter valid amount'); return; }
-    
+    if(!amount || amount <= 0) return;
     const dateStr = expDate.value || new Date().toISOString().slice(0,10);
-    const mid = getMonthIdFromDate(dateStr);
-    const m = await ensureMonth(mid);
-    
+    const m = await ensureMonth(getMonthIdFromDate(dateStr));
     m.daily.push({ amount, category, note: expNote.value || '', date: dateStr, ts: Date.now() });
     await saveMonth(m);
-    
     expAmount.value=''; expCategory.value=''; expNote.value='';
-    
-    const inputs = [expAmount, expCategory, expNote];
-    inputs.forEach(input => {
-        const parent = input.closest('.mdl-textfield');
-        if(parent) {
-            parent.classList.remove('is-dirty');
-            parent.classList.remove('is-focused');
-        }
-    });
-    
-    // 🟢 FIX 1: Always refresh the dashboard to update totals, regardless of month
-    refreshDashboard(); 
-    populateCategoryDatalist(); 
-    
+    refreshDashboard();
     alert('Expense saved');
   });
 
-  // 4. Recurring Item Setup
   recFrequencyMonthly.addEventListener('change', () => { yearlyDueMonthInput.classList.add('hidden'); });
   recFrequencyYearly.addEventListener('change', () => { yearlyDueMonthInput.classList.remove('hidden'); });
 
+  // 🟢 FIX: Adding 'ts' property here for recurring items
   addRecurringItemBtn.addEventListener('click', async () => {
     const name = (recName.value || 'Item').trim();
     const amount = Number(recAmount.value || 0);
     const frequency = document.querySelector('input[name="recFrequency"]:checked').value;
-    
-    if (!name || amount <= 0) { alert('Enter a valid name and positive amount.'); return; }
+    if (!name || amount <= 0) return;
 
     const m = await ensureMonth(viewingMonth);
-    const item = { name, amount };
+    const item = { name, amount, ts: Date.now() };
 
     if (frequency === 'monthly') {
       m.recurringMonthly.push(item);
-    } else { // yearly
+    } else {
       const dueMonth = Number(recDueMonth.value);
-      if (!dueMonth) { alert('Please select a due month for yearly cost.'); return; }
+      if (!dueMonth) { alert('Select due month'); return; }
       item.month = dueMonth;
       m.recurringYearly.push(item);
     }
-    
     await saveMonth(m);
-    
-    recName.value = '';
-    recAmount.value = '';
-    recDueMonth.value = '';
+    recName.value = ''; recAmount.value = '';
     refreshDashboard();
     alert('Recurring item saved!');
   });
   
-  // 5. FAB and History Actions
   quickAddExpenseFAB.addEventListener('click', () => {
-      // Logic to switch to the Expenses tab (#expenses-panel)
-      const expensesTabLink = document.querySelector('a[href="#expenses-panel"]');
-      if (expensesTabLink) {
-          expensesTabLink.click();
-      }
+      const tab = document.querySelector('a[href="#expenses-panel"]');
+      if (tab) tab.click();
   });
 
-  exportCSV.addEventListener('click', () => {
-      alert('Export to CSV functionality not yet implemented.');
-  });
-  
   clearAll.addEventListener('click', async () => {
-    if(confirm('Are you sure you want to permanently delete ALL data? This cannot be undone.')) {
-      await clearAllData(); // Assume this function exists in db.js
-      alert('All data cleared.');
+    if(confirm('Delete ALL data?')) {
+      await clearAllData();
       window.location.reload();
     }
   });
 
-
-  // 6. PWA Update Handler (Your existing function)
   function showUpdatePrompt() {
     if (updateBar) {
         updateBar.classList.remove('hidden');
-        updateBar.querySelector('#reloadAppBtn').addEventListener('click', () => {
-            window.location.reload(); 
-        });
+        updateBar.querySelector('#reloadAppBtn').addEventListener('click', () => { window.location.reload(); });
     }
   }
 
-
-  // --- Initialization ---
-  
-  // Set default date for expense input
   expDate.value = new Date().toISOString().slice(0,10);
-
   await ensureMonth(viewingMonth);
   populateMonthSelects();
   refreshDashboard();
   
-  // --- 📢 PWA Service Worker Update Handler ---
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(reg => {
-        console.log('SW registration successful');
-
+    navigator.serviceWorker.register('service-worker.js').then(reg => {
         reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    showUpdatePrompt(); 
-                }
+            const nw = reg.installing;
+            nw.addEventListener('statechange', () => {
+                if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdatePrompt(); 
             });
         });
-      })
-      .catch(() => console.warn('SW registration failed'));
-
-    // PWA install prompt handler
+    });
     window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
+      e.preventDefault(); deferredPrompt = e;
       installBtn.classList.remove('hidden');
     });
-    
     installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
-        deferredPrompt = null;
-        installBtn.classList.add('hidden');
-      }
+      if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; installBtn.classList.add('hidden'); }
     });
   }
-
 })();
