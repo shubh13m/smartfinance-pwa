@@ -1,5 +1,4 @@
-// db.js - FIX: ensureMonth now correctly initializes and uses recurringMonthly/recurringYearly keys.
-
+// db.js - Updated with True Surplus Calculation Logic
 const DB_NAME = "SmartFinanceDB_v1";
 const DB_STORE = "months";
 let db;
@@ -10,7 +9,7 @@ function openDB(){
     req.onupgradeneeded = (e) => {
       db = e.target.result;
       if(!db.objectStoreNames.contains(DB_STORE)){
-        const store = db.createObjectStore(DB_STORE, { keyPath: "id" }); // id: "YYYY-MM"
+        const store = db.createObjectStore(DB_STORE, { keyPath: "id" });
         store.createIndex("by_date", "id", { unique: true });
       }
     };
@@ -66,22 +65,17 @@ async function listMonths(){
   });
 }
 
-// 🆕 NEW FUNCTION: Clears all data from the database
 async function clearAllData(){
   const database = await openDB();
   return new Promise((res,rej)=>{
     const tx = database.transaction(DB_STORE,'readwrite');
     const store = tx.objectStore(DB_STORE);
-    // Use the clear method to delete all records in the object store
     const req = store.clear(); 
     req.onsuccess = ()=> res(true);
     req.onerror = ()=> rej(req.error);
   });
 }
-// ----------------------------------------------------
 
-
-// Ensure month object exists and has new income structure:
 async function ensureMonth(monthId){
   let m = await getMonth(monthId);
   if(!m){
@@ -89,7 +83,6 @@ async function ensureMonth(monthId){
       id: monthId,
       income: { base: 0, extras: [] },
       daily: [], 
-      // 🟢 FIX 2A: Initialize with the correct array keys used by app.js
       recurringMonthly: [], 
       recurringYearly: [],
       investments: {sip:0,stocks:0,other:0}
@@ -97,29 +90,58 @@ async function ensureMonth(monthId){
     await saveMonth(m);
   } else {
     let saveNeeded = false;
-
-    // 1. Normalize older income data shape
     if(typeof m.income === 'number'){
       m.income = { base: m.income, extras: [] };
       saveNeeded = true;
     }
-    
-    // 2. Normalize and ensure recurring keys exist (Migration/Correction)
-    // If the old keys exist, migrate their contents to the new keys, but ensure the new keys are initialized as arrays.
-    
-    // 🟢 FIX 2B: Use the correct keys and ensure they are arrays
     m.recurringMonthly = m.recurringMonthly || [];
     m.recurringYearly = m.recurringYearly || [];
     m.daily = m.daily || [];
     m.income.extras = m.income.extras || [];
     m.investments = m.investments || {sip:0,stocks:0,other:0};
 
-
-    // Clean up old/incorrect keys if they were accidentally saved previously (optional cleanup)
     if(m.monthlyRecurring) delete m.monthlyRecurring;
     if(m.yearlyRecurringDue) delete m.yearlyRecurringDue;
 
-    if (saveNeeded) await saveMonth(m); // Save if income was normalized
+    if (saveNeeded) await saveMonth(m);
   }
   return m;
+}
+
+/**
+ * 🆕 NEW: TRUTH-BASED CALCULATION
+ * This function calculates the actual surplus by including daily expenses.
+ */
+async function getFinancialSummary(monthId) {
+    const m = await ensureMonth(monthId);
+    
+    // 1. Calculate Total Income
+    const totalIncome = m.income.base + m.income.extras.reduce((sum, e) => sum + e.amount, 0);
+    
+    // 2. Calculate Effective Monthly Recurring (Fixed Costs)
+    const monthlyFixed = m.recurringMonthly.reduce((sum, r) => sum + r.amount, 0);
+    const yearlyFixedSlice = m.recurringYearly.reduce((sum, r) => sum + (r.amount / 12), 0);
+    const totalEffectiveRecurring = monthlyFixed + yearlyFixedSlice;
+    
+    // 3. Calculate Daily Expenses (The missing piece in your previous logic)
+    const totalDaily = m.daily.reduce((sum, d) => sum + d.amount, 0);
+    
+    // 4. Budget Goals (50/20/20/10)
+    const expenseGoal = totalIncome * 0.50;
+    const prepayFixed = totalIncome * 0.10;
+    
+    // 5. TRUE SURPLUS: Goal - (Fixed Bills + Daily Cash Spending)
+    const trueSurplus = expenseGoal - totalEffectiveRecurring - totalDaily;
+    
+    // 6. TOTAL PREPAY POWER
+    const totalPrepayPower = trueSurplus + prepayFixed;
+
+    return {
+        totalIncome,
+        totalEffectiveRecurring,
+        totalDaily,
+        expenseGoal,
+        trueSurplus,
+        totalPrepayPower
+    };
 }
