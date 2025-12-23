@@ -53,7 +53,6 @@
 
   function getMonthIdFromDate(dateStr) { return dateStr.slice(0, 7); }
   
-  // Helper to get readable month name from ID (e.g., "2025-12" -> "December 2025")
   function getReadableMonthName(id) {
     const [y, m] = id.split('-');
     return new Date(y, m - 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
@@ -118,7 +117,6 @@
         li.className = 'mdl-list__item mdl-list__item--two-line';
         const label = type === 'yearly' ? `Yearly (${getMonthName(item.month)})` : 'Monthly';
         const itemTs = item.ts || 0; 
-        // 🟢 FIXED: Changed icon to 'cancel' (cross)
         li.innerHTML = `<span class="mdl-list__item-primary-content"><span>${item.name}</span><span class="mdl-list__item-sub-title">${label} - ${fmt(item.amount)}</span></span>
             <span class="mdl-list__item-secondary-content"><button class="mdl-button mdl-js-button mdl-button--icon delete-rec" data-id="${itemTs}" data-type="${type}"><i class="material-icons" style="color:#F44336;">cancel</i></button></span>`;
         return li;
@@ -149,55 +147,72 @@
     const baseIncome = Number(m.income.base || 0);
     const extrasTotal = sumAmounts(m.income.extras);
     const totalIncome = baseIncome + extrasTotal;
+    
     incomeInput.value = baseIncome > 0 ? baseIncome : '';
     baseIncomeDisplay.textContent = fmt(baseIncome);
     extraIncomeDisplay.textContent = fmt(extrasTotal);
     totalIncomeDisplay.textContent = fmt(totalIncome);
+
     const dailyTotal = sumAmounts(m.daily);
     const monthlyRecurringTotal = sumAmounts(m.recurringMonthly);
-    const yearlyDueThisMonthTotal = m.recurringYearly.filter(item => Number(item.month) === currentMonthNum).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const yearlyDueThisMonthTotal = (m.recurringYearly || []).filter(item => Number(item.month) === currentMonthNum).reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const effectiveMonthlyCost = await calculateEffectiveMonthlyCost(viewingMonth);
+    
     const totalOutflow = dailyTotal + monthlyRecurringTotal + yearlyDueThisMonthTotal;
+    
     expenseDisplay.textContent = fmt(dailyTotal);
     monthlyRecurringDisplay.textContent = fmt(monthlyRecurringTotal);
     yearlyDueThisMonthDisplay.textContent = fmt(yearlyDueThisMonthTotal);
     effectiveMonthlyRecurringDisplay.textContent = fmt(effectiveMonthlyCost);
+
     const goalExp = totalIncome * 0.50;
     const goalInv = totalIncome * 0.20;
     const goalSav = totalIncome * 0.20;
     const goalPre = totalIncome * 0.10;
+
     goalExpDisplay.textContent = fmt(goalExp);
     goalInvDisplay.textContent = fmt(goalInv);
     goalSavDisplay.textContent = fmt(goalSav);
     goalPreDisplay.textContent = fmt(goalPre);
-    const surplus = Math.max(0, goalExp - effectiveMonthlyCost);
+
+    // 🟢 UPDATED: Surplus now includes DAILY expenses to reflect actual Prepay Power
+    const surplus = goalExp - (effectiveMonthlyCost + dailyTotal);
     surplusDisplay.textContent = fmt(surplus);
-    surplusLabel.textContent = effectiveMonthlyCost > goalExp ? "Expense Overrun:" : "Expense Surplus:";
-    surplusDisplay.style.color = surplus > 0 ? "#4CAF50" : "#212121";
+    
+    // UI logic for surplus/overrun
+    if (surplus < 0) {
+        surplusLabel.textContent = "Budget Overrun:";
+        surplusDisplay.style.color = "#F44336"; // Muted Coral for Warning
+    } else {
+        surplusLabel.textContent = "Expense Surplus:";
+        surplusDisplay.style.color = "#4CAF50"; // Emerald Green for Success
+    }
+
+    // Total Power = Fixed 10% Prepay + whatever is left from the 50% bucket
     totalPowerDisplay.textContent = fmt(goalPre + surplus);
+
     const savings = totalIncome - totalOutflow;
     savedDisplay.textContent = fmt(savings);
     savedDisplay.parentElement.style.color = savings < 0 ? "#F44336" : "#4CAF50";
+
     await renderExpenseList(viewingMonth);
     await renderRecurringList();
     await populateCategoryDatalist();
     await renderHistory();
   }
   
-  // 🟢 FIXED: Readable history and detail view
   async function renderHistory(){
     const monthIds = await listMonths();
     monthsList.innerHTML = '';
     monthIds.sort().reverse().forEach(id => {
       const btn = document.createElement('button');
       btn.className = 'mdl-button mdl-js-button mdl-button--raised';
-      btn.textContent = getReadableMonthName(id); // Show readable name instead of ID
+      btn.textContent = getReadableMonthName(id); 
       btn.style.margin = "4px";
       btn.addEventListener('click', async () => {
         const m = await getMonth(id);
         const dailySum = sumAmounts(m.daily);
         const incomeSum = Number(m.income.base || 0) + sumAmounts(m.income.extras);
-        // Build a clean summary instead of [object Object]
         monthDetail.innerHTML = `
           <div style="background:#f9f9f9; padding:15px; border-radius:8px;">
             <h4 style="margin-top:0;">${getReadableMonthName(id)}</h4>
