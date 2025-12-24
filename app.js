@@ -11,6 +11,10 @@
   const monthlyRecurringDisplay = document.getElementById('monthlyRecurringDisplay');
   const yearlyDueThisMonthDisplay = document.getElementById('yearlyDueThisMonthDisplay');
   const effectiveMonthlyRecurringDisplay = document.getElementById('effectiveMonthlyRecurringDisplay');
+  
+  // 🆕 Reference for the new Total Expense display
+  const totalMonthlyExpenseDisplay = document.getElementById('totalMonthlyExpenseDisplay');
+
   const savedDisplay = document.getElementById('savedDisplay');
   const goalExpDisplay = document.getElementById('goalExpDisplay');
   const goalInvDisplay = document.getElementById('goalInvDisplay');
@@ -158,12 +162,20 @@
     const yearlyDueThisMonthTotal = (m.recurringYearly || []).filter(item => Number(item.month) === currentMonthNum).reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const effectiveMonthlyCost = await calculateEffectiveMonthlyCost(viewingMonth);
     
-    const totalOutflow = dailyTotal + monthlyRecurringTotal + yearlyDueThisMonthTotal;
+    // 🆕 TRUTH LOGIC: Combined total of daily + effective recurring
+    const totalMonthlyExpense = dailyTotal + effectiveMonthlyCost;
     
     expenseDisplay.textContent = fmt(dailyTotal);
     monthlyRecurringDisplay.textContent = fmt(monthlyRecurringTotal);
     yearlyDueThisMonthDisplay.textContent = fmt(yearlyDueThisMonthTotal);
     effectiveMonthlyRecurringDisplay.textContent = fmt(effectiveMonthlyCost);
+
+    // Update the new Total Expense display if it exists in HTML
+    if (totalMonthlyExpenseDisplay) {
+        totalMonthlyExpenseDisplay.textContent = fmt(totalMonthlyExpense);
+        // Color coding: Red if over 50% goal
+        totalMonthlyExpenseDisplay.style.color = totalMonthlyExpense > (totalIncome * 0.5) ? "#F44336" : "#212121";
+    }
 
     const goalExp = totalIncome * 0.50;
     const goalInv = totalIncome * 0.20;
@@ -175,11 +187,10 @@
     goalSavDisplay.textContent = fmt(goalSav);
     goalPreDisplay.textContent = fmt(goalPre);
 
-    // 🟢 UPDATED: Surplus now includes DAILY expenses to reflect actual Prepay Power
-    const surplus = goalExp - (effectiveMonthlyCost + dailyTotal);
+    // 🟢 UPDATED: Surplus now compares Goal against Total Expense (Daily + Recurring)
+    const surplus = goalExp - totalMonthlyExpense;
     surplusDisplay.textContent = fmt(surplus);
     
-    // UI logic for surplus/overrun
     if (surplus < 0) {
         surplusLabel.textContent = "Budget Overrun:";
         surplusDisplay.style.color = "#F44336"; // Muted Coral for Warning
@@ -188,9 +199,10 @@
         surplusDisplay.style.color = "#4CAF50"; // Emerald Green for Success
     }
 
-    // Total Power = Fixed 10% Prepay + whatever is left from the 50% bucket
+    // Total Power = Fixed 10% Prepay + whatever is left (or missing) from the 50% bucket
     totalPowerDisplay.textContent = fmt(goalPre + surplus);
 
+    const totalOutflow = dailyTotal + monthlyRecurringTotal + yearlyDueThisMonthTotal;
     const savings = totalIncome - totalOutflow;
     savedDisplay.textContent = fmt(savings);
     savedDisplay.parentElement.style.color = savings < 0 ? "#F44336" : "#4CAF50";
