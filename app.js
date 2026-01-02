@@ -336,4 +336,33 @@
       if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; installBtn.classList.add('hidden'); }
     });
   }
+/**
+ * Packages all months into a single JSON string for backup
+ */
+async function exportFullBackup() {
+  const allData = await listMonths();
+  const backup = {
+    appName: "SmartFinanceDB",
+    exportedAt: new Date().toISOString(),
+    data: allData
+  };
+  return JSON.stringify(backup);
+}
+
+/**
+ * Takes a JSON string and saves all months back into IndexedDB
+ */
+async function importFullBackup(jsonString) {
+  try {
+    const backup = JSON.parse(jsonString);
+    if (backup.appName !== "SmartFinanceDB") return false;
+    for (const month of backup.data) {
+      await saveMonth(month);
+    }
+    return true;
+  } catch (e) {
+    console.error("Import failed", e);
+    return false;
+  }
+}
 })();
