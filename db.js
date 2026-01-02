@@ -5,11 +5,11 @@ let db;
 
 function openDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
+    const req = indexedDB.open(DB_NAME, 2);
     req.onupgradeneeded = (e) => {
       db = e.target.result;
       if (!db.objectStoreNames.contains(DB_STORE)) {
-        const store = db.createObjectStore(DB_STORE, { key_path: "id" });
+        const store = db.createObjectStore(DB_STORE, { keyPath: "id" });
         store.createIndex("by_date", "id", { unique: true });
       }
     };
