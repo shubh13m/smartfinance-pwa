@@ -1,5 +1,5 @@
 // --- CRITICAL CHANGE: INCREMENT THE CACHE VERSION ---
-const CACHE_NAME = 'smartfinance-cache-v17';
+const CACHE_NAME = 'smartfinance-cache-v18'; // Incremented for Phase 3
 // --------------------------------------------------
 
 const ASSETS = [
@@ -10,7 +10,6 @@ const ASSETS = [
     'manifest.json',
     'icon-192.png',
     'icon-512.png',
-    // Add the Material Design Lite files if you want the app to be fully offline
     'https://code.getmdl.io/1.3.0/material.indigo-pink.min.css',
     'https://code.getmdl.io/1.3.0/material.min.js'
 ];
@@ -20,37 +19,44 @@ self.addEventListener('install', evt => {
   console.log('Service Worker: Installing new cache ' + CACHE_NAME);
   evt.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      // Ensure all necessary files are added
       return cache.addAll(ASSETS).catch(error => {
         console.error('Failed to pre-cache some assets:', error);
       });
     })
   );
-  // Forces the waiting service worker to become the active service worker
   self.skipWaiting();
 });
 
-// --- ACTIVATE: Clears out any old caches (e.g., 'v2') ---
+// --- ACTIVATE: Clears out any old caches ---
 self.addEventListener('activate', evt => {
     console.log('Service Worker: Activating and clearing old caches.');
     evt.waitUntil(
-        caches.keys().then(keys => {
-            return Promise.all(keys
-                .filter(key => key !== CACHE_NAME)
-                .map(key => caches.delete(key))
-            );
-        })
+      caches.keys().then(keys => {
+        return Promise.all(keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+        );
+      })
     );
-    // Takes control of the current page immediately
     return self.clients.claim();
 });
 
-// --- FETCH: Serves cached content or fetches new content ---
+// --- FETCH: PHASE 3 - NETWORK FIRST STRATEGY ---
+// This ensures that bug fixes reach the user immediately if they have a connection.
 self.addEventListener('fetch', evt => {
   evt.respondWith(
-    caches.match(evt.request).then(res => {
-      // Return cached response if found, otherwise fetch from network
-      return res || fetch(evt.request);
+    fetch(evt.request).then(networkRes => {
+      // Check if we received a valid response
+      if(networkRes && networkRes.status === 200) {
+        const resClone = networkRes.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(evt.request, resClone);
+        });
+      }
+      return networkRes;
+    }).catch(() => {
+      // If network fails (offline), fall back to cache
+      return caches.match(evt.request);
     })
   );
 });
