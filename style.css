@@ -2,17 +2,16 @@
    1. ROOT VARIABLES (Color Palette)
    ========================================= */
 :root {
-  /* Branding Colors */
-  --primary: #007BFF;
-  --danger: #DC3545;
-  --success: #28A745;
+  /* Branding Colors - Synced with MDL Indigo */
+  --primary: #3f51b5;
+  --danger: #d32f2f;
+  --success: #388e3c;
   
   /* UI Colors */
   --bg: #F8F9FA;
   --text: #212529;
   --muted: #6C757D;
   --card-bg: #FFFFFF;
-  --sticky-header-height: 136px;
 }
 
 /* =========================================
@@ -28,28 +27,24 @@ body {
   color: var(--text);
   margin: 0;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  /* Removed flex-direction to prevent layout breakage */
 }
 
 /* =========================================
    3. LAYOUT & CONTAINERS
    ========================================= */
 
+/* Fix: Ensuring content is visible below the fixed topbar */
 .mdl-layout__content.container {
-  padding-top: 8px; 
-  padding-bottom: 8px;
-  padding-left: 8px; 
-  padding-right: 8px;
+  padding: 8px;
   width: 100%;
   margin: 0 auto;
-  margin-top: 52px; 
+  display: block;
 }
 
 @media screen and (min-width: 600px) {
   .mdl-layout__content.container {
-    padding: 16px;
-    padding-top: 16px; 
+    padding: 24px;
     max-width: 1000px;
   }
 }
@@ -59,44 +54,50 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 999;
-  background: var(--card-bg);
-  padding: 8px 16px; 
+  height: 56px;
+  z-index: 1000;
+  background: var(--primary); /* Changed to primary for branding */
+  color: white;
+  padding: 0 16px; 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .topbar h1 {
-    font-size: 1.8rem;
+    font-size: 1.2rem;
     margin: 0;
+    font-weight: 500;
 }
 
 .mdl-card {
   background: var(--card-bg);
   padding: 0;
   border-radius: 8px; 
-  margin-bottom: 12px; 
+  margin-bottom: 16px; 
   width: 100%;
+  min-height: 0; /* Prevents unwanted stretching */
 }
 
 .mdl-card__title {
-    padding: 12px 16px; 
+    padding: 16px; 
 }
 
 .mdl-card__title-text {
-    font-size: 1.25rem; 
+    font-size: 1.1rem;
+    font-weight: 500;
 }
 
 .mdl-card__supporting-text {
     width: 100%;
     padding: 16px;
+    color: var(--text);
 }
 
 .footer {
   text-align: center;
-  padding: 10px;
+  padding: 20px;
   color: var(--muted);
   font-size: 12px;
 }
@@ -107,7 +108,7 @@ body {
 .row {
   display: flex;
   gap: 12px; 
-  margin: 8px 0;
+  margin: 12px 0;
   align-items: center;
 }
 
@@ -120,52 +121,44 @@ body {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
-/* PHASE 3: Navigation Debounce UI State */
+/* Navigation Debounce UI State */
 .loading-lock {
     pointer-events: none;
-    opacity: 0.5;
-    cursor: wait;
+    opacity: 0.6;
 }
 
 .small-btn {
-  padding: 4px 8px; 
-  height: 28px; 
-  line-height: 28px;
+  padding: 0 8px; 
+  height: 32px; 
+  line-height: 32px;
+  font-size: 12px;
 }
 
-.notice, .muted {
+.muted {
   font-size: 13px;
-  margin: 8px 0;
-}
-
-.mdl-list__item {
-    padding: 8px 16px; 
+  color: var(--muted);
 }
 
 /* =========================================
    5. DASHBOARD SPECIFIC STYLES
    ========================================= */
 
-.dashboard-summary {
-  width: 100%;
-  padding: 0;
-}
-
 .dashboard-summary .row {
   display: flex;
   justify-content: space-between;
-  padding: 10px 16px; 
+  padding: 6px 0; 
   margin: 0;
-  font-size: 15px; 
+  font-size: 14px; 
 }
 
 .dashboard-summary .row.total {
   font-weight: bold;
-  font-size: 17px;
-  background-color: var(--bg); 
+  font-size: 15px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0,0,0,0.05);
 }
 
 .dashboard-summary .row.income {
@@ -179,32 +172,21 @@ body {
 .dashboard-summary .row.saved {
   font-weight: bold;
   color: var(--success); 
-  background-color: #e6ffe6; 
-  border-radius: 0 0 8px 8px;
-}
-
-.dashboard-summary hr {
-  margin: 8px 0; 
-  opacity: 0.1;
-  border-color: var(--muted);
+  background-color: #e8f5e9; 
+  padding: 12px;
+  margin-top: 12px;
+  border-radius: 4px;
 }
 
 .month-selector-row {
-    justify-content: space-around;
-    padding: 8px 0; 
-    align-items: center;
-    background-color: var(--card-bg);
+    justify-content: space-between !important;
+    padding: 8px 0 16px 0 !important; 
+    border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
 .current-month-label {
-    font-weight: bold;
-    font-size: 1em; 
-    text-align: center;
-    flex-grow: 1; 
-}
-
-.month-selector-row button {
-    padding: 0 8px; 
+    font-weight: 500;
+    font-size: 1.1em; 
 }
 
 /* =========================================
@@ -212,52 +194,21 @@ body {
    ========================================= */
 .floating-btn {
   position: fixed;
-  bottom: 16px; 
-  right: 16px; 
+  bottom: 24px; 
+  right: 24px; 
   z-index: 900;
-  background-color: var(--primary) !important;
 }
 
 /* =========================================
    7. MDL CUSTOMIZATIONS & TAB ADJUSTMENTS
    ========================================= */
 
-.mdl-button--colored,
-.mdl-button.mdl-button--colored:active,
-.mdl-button.mdl-button--colored:hover {
-    background: var(--primary) !important;
-    color: var(--card-bg) !important;
-}
-
-.mdl-button--accent.mdl-button--raised,
-.mdl-button--accent.mdl-button--fab {
-    background-color: var(--danger) !important;
-}
-
-.mdl-tabs {
-    position: static; 
-    width: 100%;
-    margin-top: 0; 
-}
-
 .mdl-tabs__tab-bar {
-    border-bottom: 2px solid var(--bg);
-    padding: 0;
-    overflow-x: auto; 
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
-    position: sticky;
-    top: 0; 
-    z-index: 998; 
+    border-bottom: 1px solid rgba(0,0,0,0.1);
     background: var(--card-bg); 
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.mdl-tabs__tab {
-    min-width: 90px;
-    padding: 0 12px;
-    line-height: 40px; 
-    height: 40px;
+    position: sticky;
+    top: 56px; /* Sits exactly below topbar */
+    z-index: 999;
 }
 
 .mdl-tabs__tab.is-active {
@@ -266,40 +217,31 @@ body {
 
 .mdl-tabs__tab.is-active::after {
     background: var(--primary) !important;
-    height: 3px;
 }
 
 #updateBar {
   position: fixed !important;
-  top: 52px !important; 
+  top: 56px !important; 
   left: 0;
   right: 0;
   z-index: 998; 
-  background: var(--primary);
+  background: #323232;
   color: white;
-  padding: 12px;
+  padding: 8px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center; 
 }
 
 @media screen and (max-width: 600px) {
-    #incomeInputCard .row, 
-    #addDailyExpenseSection .row,
-    #addRecurringItemSection .row {
-        flex-direction: column;
-        align-items: stretch;
+    .row {
+        flex-wrap: wrap;
     }
     .input-col {
-        width: 100%;
+        min-width: 100%;
     }
-    #saveIncome, #addExtraIncome, #addExpBtn, #addRecurringItemBtn,
-    #exportCSV, #clearAll {
+    .mdl-button--raised {
         width: 100%;
-        margin-top: 8px;
-    }
-    #addRecurringItemSection .mdl-radio {
-        width: auto;
     }
 }
 
@@ -307,11 +249,5 @@ body {
    8. CATEGORY DROPDOWN FIX
    ========================================= */
 #expCategory::-webkit-calendar-picker-indicator {
-    display: block !important;
-    cursor: pointer;
     opacity: 0.6;
-}
-
-#expCategory::-webkit-calendar-picker-indicator:hover {
-    opacity: 1;
 }
