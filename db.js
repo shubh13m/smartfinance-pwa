@@ -86,6 +86,27 @@ async function clearAllData() {
   });
 }
 
+// FIX: Required for Google Drive Sync
+async function exportFullBackup() {
+  const allData = await listMonths();
+  return JSON.stringify(allData);
+}
+
+// FIX: Standardizing restoration logic
+async function importFullBackup(jsonData) {
+  try {
+    const data = JSON.parse(jsonData);
+    if (!Array.isArray(data)) return false;
+    for (const month of data) {
+      await saveMonth(month);
+    }
+    return true;
+  } catch (e) {
+    console.error("Import failed", e);
+    return false;
+  }
+}
+
 async function ensureMonth(monthId) {
   let m = await getMonth(monthId);
   if (!m) {
@@ -122,17 +143,22 @@ async function ensureMonth(monthId) {
 
 async function getFinancialSummary(monthId) {
   const m = await ensureMonth(monthId);
-  // PHASE 1: Updated to use safeSum
+  // Standardized to use safeSum for all components to prevent decimal drift
   const totalIncome = (m.income.base || 0) + safeSum(m.income.extras);
   const monthlyFixed = safeSum(m.recurringMonthly);
-  const yearlyFixedSlice = (m.recurringYearly || []).reduce((sum, r) => sum + Math.round((Number(r.amount) / 12) * 100), 0) / 100;
+  
+  // Slice calculation using cent-rounding
+  const yearlyFixedSlice = (m.recurringYearly || []).reduce((sum, r) => 
+    sum + Math.round((Number(r.amount) / 12) * 100), 0) / 100;
+  
   const totalEffectiveRecurring = monthlyFixed + yearlyFixedSlice;
   const totalDaily = safeSum(m.daily);
 
-  const expenseGoal = totalIncome * 0.50;
-  const prepayFixed = totalIncome * 0.10;
-  const trueSurplus = expenseGoal - totalEffectiveRecurring - totalDaily;
-  const totalPrepayPower = trueSurplus + prepayFixed;
+  const expenseGoal = (Math.round((totalIncome * 0.50) * 100)) / 100;
+  const prepayFixed = (Math.round((totalIncome * 0.10) * 100)) / 100;
+  
+  const trueSurplus = (Math.round((expenseGoal - totalEffectiveRecurring - totalDaily) * 100)) / 100;
+  const totalPrepayPower = (Math.round((trueSurplus + prepayFixed) * 100)) / 100;
 
   return { totalIncome, totalEffectiveRecurring, totalDaily, expenseGoal, trueSurplus, totalPrepayPower };
 }
