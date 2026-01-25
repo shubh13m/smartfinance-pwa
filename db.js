@@ -86,13 +86,11 @@ async function clearAllData() {
   });
 }
 
-// FIX: Required for Google Drive Sync
 async function exportFullBackup() {
   const allData = await listMonths();
   return JSON.stringify(allData);
 }
 
-// FIX: Standardizing restoration logic
 async function importFullBackup(jsonData) {
   try {
     const data = JSON.parse(jsonData);
@@ -107,6 +105,7 @@ async function importFullBackup(jsonData) {
   }
 }
 
+// FIX: Improved inheritance logic to ensure all data clones to next months
 async function ensureMonth(monthId) {
   let m = await getMonth(monthId);
   if (!m) {
@@ -121,12 +120,13 @@ async function ensureMonth(monthId) {
       id: monthId,
       income: { base: prevData ? (prevData.income?.base || 0) : 0, extras: [] },
       daily: [],
-      recurringMonthly: prevData ? [...(prevData.recurringMonthly || [])] : [],
-      recurringYearly: prevData ? [...(prevData.recurringYearly || [])] : [],
+      recurringMonthly: prevData ? JSON.parse(JSON.stringify(prevData.recurringMonthly || [])) : [],
+      recurringYearly: prevData ? JSON.parse(JSON.stringify(prevData.recurringYearly || [])) : [],
       investments: prevData ? { ...prevData.investments } : { sip: 0, stocks: 0, other: 0 }
     };
     await saveMonth(m);
   } else {
+    // Migration logic for old data structures
     let saveNeeded = false;
     if (typeof m.income === 'number') { m.income = { base: m.income, extras: [] }; saveNeeded = true; }
     m.recurringMonthly = m.recurringMonthly || [];
@@ -134,8 +134,6 @@ async function ensureMonth(monthId) {
     m.daily = m.daily || [];
     m.income.extras = m.income.extras || [];
     m.investments = m.investments || { sip: 0, stocks: 0, other: 0 };
-    if (m.monthlyRecurring) { delete m.monthlyRecurring; saveNeeded = true; }
-    if (m.yearlyRecurringDue) { delete m.yearlyRecurringDue; saveNeeded = true; }
     if (saveNeeded) await saveMonth(m);
   }
   return m;
@@ -143,22 +141,26 @@ async function ensureMonth(monthId) {
 
 async function getFinancialSummary(monthId) {
   const m = await ensureMonth(monthId);
-  // Standardized to use safeSum for all components to prevent decimal drift
   const totalIncome = (m.income.base || 0) + safeSum(m.income.extras);
   const monthlyFixed = safeSum(m.recurringMonthly);
-  
-  // Slice calculation using cent-rounding
   const yearlyFixedSlice = (m.recurringYearly || []).reduce((sum, r) => 
     sum + Math.round((Number(r.amount) / 12) * 100), 0) / 100;
   
   const totalEffectiveRecurring = monthlyFixed + yearlyFixedSlice;
   const totalDaily = safeSum(m.daily);
-
   const expenseGoal = (Math.round((totalIncome * 0.50) * 100)) / 100;
   const prepayFixed = (Math.round((totalIncome * 0.10) * 100)) / 100;
-  
   const trueSurplus = (Math.round((expenseGoal - totalEffectiveRecurring - totalDaily) * 100)) / 100;
   const totalPrepayPower = (Math.round((trueSurplus + prepayFixed) * 100)) / 100;
 
   return { totalIncome, totalEffectiveRecurring, totalDaily, expenseGoal, trueSurplus, totalPrepayPower };
+}
+
+/** * UI Helper: Re-triggers MDL to style dynamic elements
+ */
+function upgradeMDL() {
+  if (window.componentHandler) {
+    window.componentHandler.upgradeDom();
+    window.componentHandler.upgradeAllRegistered();
+  }
 }
