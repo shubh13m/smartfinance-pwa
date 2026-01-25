@@ -12,7 +12,6 @@
   --text: #212529;
   --muted: #6C757D;
   --card-bg: #FFFFFF;
-  /* Topbar (52px) + Tabs (40px) + UpdateBar (44px) = ~136px */
   --sticky-header-height: 136px;
 }
 
@@ -37,36 +36,30 @@ body {
    3. LAYOUT & CONTAINERS
    ========================================= */
 
-/* 1. Scrolling container and content offset */
 .mdl-layout__content.container {
-  /* CRUCIAL FIX: Remove flex: 1 and use margin-top for offset */
-  padding-top: 8px; /* Reset actual padding */
+  padding-top: 8px; 
   padding-bottom: 8px;
   padding-left: 8px; 
   padding-right: 8px;
   width: 100%;
   margin: 0 auto;
-  /* Offset content below the fixed topbar (52px) */
   margin-top: 52px; 
 }
 
-/* DESKTOP/TABLET: Restore padding and max-width */
 @media screen and (min-width: 600px) {
   .mdl-layout__content.container {
     padding: 16px;
-    padding-top: 16px; /* Restore actual padding */
+    padding-top: 16px; 
     max-width: 1000px;
   }
 }
 
-/* 2. STICKY TOPBAR (Fixed position remains the best choice here) */
 .topbar {
   position: fixed; 
   top: 0;
   left: 0;
   right: 0;
   z-index: 999;
-  
   background: var(--card-bg);
   padding: 8px 16px; 
   display: flex;
@@ -74,13 +67,12 @@ body {
   justify-content: space-between;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-/* INCREASED TITLE SIZE FOR MOBILE */
+
 .topbar h1 {
     font-size: 1.8rem;
     margin: 0;
 }
 
-/* Card styles (MDL already has card classes, this enhances them) */
 .mdl-card {
   background: var(--card-bg);
   padding: 0;
@@ -88,18 +80,20 @@ body {
   margin-bottom: 12px; 
   width: 100%;
 }
+
 .mdl-card__title {
     padding: 12px 16px; 
 }
+
 .mdl-card__title-text {
     font-size: 1.25rem; 
 }
+
 .mdl-card__supporting-text {
     width: 100%;
     padding: 16px;
 }
 
-/* Footer style */
 .footer {
   text-align: center;
   padding: 10px;
@@ -116,24 +110,37 @@ body {
   margin: 8px 0;
   align-items: center;
 }
+
 .input-col {
   flex: 1;
 }
+
 .mdl-card__supporting-text > .row {
     flex-wrap: wrap; 
 }
+
 .hidden {
   display: none;
 }
+
+/* PHASE 3: Navigation Debounce UI State */
+.loading-lock {
+    pointer-events: none;
+    opacity: 0.5;
+    cursor: wait;
+}
+
 .small-btn {
   padding: 4px 8px; 
   height: 28px; 
   line-height: 28px;
 }
+
 .notice, .muted {
   font-size: 13px;
   margin: 8px 0;
 }
+
 .mdl-list__item {
     padding: 8px 16px; 
 }
@@ -146,6 +153,7 @@ body {
   width: 100%;
   padding: 0;
 }
+
 .dashboard-summary .row {
   display: flex;
   justify-content: space-between;
@@ -153,6 +161,7 @@ body {
   margin: 0;
   font-size: 15px; 
 }
+
 .dashboard-summary .row.total {
   font-weight: bold;
   font-size: 17px;
@@ -162,34 +171,38 @@ body {
 .dashboard-summary .row.income {
     color: var(--primary);
 }
+
 .dashboard-summary .row.expense {
     color: var(--danger);
 }
+
 .dashboard-summary .row.saved {
   font-weight: bold;
   color: var(--success); 
   background-color: #e6ffe6; 
   border-radius: 0 0 8px 8px;
 }
+
 .dashboard-summary hr {
   margin: 8px 0; 
   opacity: 0.1;
   border-color: var(--muted);
 }
 
-/* Month Selector */
 .month-selector-row {
     justify-content: space-around;
     padding: 8px 0; 
     align-items: center;
     background-color: var(--card-bg);
 }
+
 .current-month-label {
     font-weight: bold;
     font-size: 1em; 
     text-align: center;
     flex-grow: 1; 
 }
+
 .month-selector-row button {
     padding: 0 8px; 
 }
@@ -209,7 +222,6 @@ body {
    7. MDL CUSTOMIZATIONS & TAB ADJUSTMENTS
    ========================================= */
 
-/* Customizing the colored button to match primary color */
 .mdl-button--colored,
 .mdl-button.mdl-button--colored:active,
 .mdl-button.mdl-button--colored:hover {
@@ -217,38 +229,30 @@ body {
     color: var(--card-bg) !important;
 }
 
-/* Customizing the accent button (good for 'Clear All' or 'Add' actions) */
 .mdl-button--accent.mdl-button--raised,
 .mdl-button--accent.mdl-button--fab {
     background-color: var(--danger) !important;
 }
 
-/* 3. STICKY TABS (CRUCIAL FIX: Changed from fixed to sticky) */
 .mdl-tabs {
-    /* Set back to default static position for normal flow */
     position: static; 
     width: 100%;
-    /* margin is needed to place it correctly within the scrollable container */
     margin-top: 0; 
 }
 
-/* Make the tab bar itself sticky within the scrollable container */
 .mdl-tabs__tab-bar {
     border-bottom: 2px solid var(--bg);
     padding: 0;
     overflow-x: auto; 
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
-
-    /* 🆕 The magic for sticky tabs: */
     position: sticky;
-    top: 0; /* Stick to the top of the *scrollable parent* */
+    top: 0; 
     z-index: 998; 
-    background: var(--card-bg); /* Ensure it has a background when sticky */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Optional subtle shadow */
+    background: var(--card-bg); 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* Tab link styles */
 .mdl-tabs__tab {
     min-width: 90px;
     padding: 0 12px;
@@ -256,25 +260,21 @@ body {
     height: 40px;
 }
 
-/* Tab indicator color */
 .mdl-tabs__tab.is-active {
     color: var(--primary) !important;
 }
+
 .mdl-tabs__tab.is-active::after {
     background: var(--primary) !important;
     height: 3px;
 }
 
-/* 4. MOVE UPDATE BAR TO TOP */
 #updateBar {
-  /* Use fixed positioning, but set its top offset correctly */
   position: fixed !important;
-  /* Topbar height (~52px) */
   top: 52px !important; 
   left: 0;
   right: 0;
-  z-index: 998; /* Below topbar */
-  
+  z-index: 998; 
   background: var(--primary);
   color: white;
   padding: 12px;
@@ -282,23 +282,8 @@ body {
   justify-content: space-between;
   align-items: center; 
 }
-/* 🆕 Adjust the container margin to account for the update bar and tabs */
-/* Since the tabs are now sticky inside the container, we only need to push the content down 
-   by the height of the update bar when it is visible. This is complex in pure CSS.
-   We will rely on the tabs sticking correctly and make the container offset simple.
-   If the update bar is visible, its presence will slightly obscure the top of the tabs.
-   The simplest fix is to adjust the margin-top for the tab content.
-   
-   However, the best solution is to use JS to adjust the margin if the update bar is active.
-   
-   For pure CSS, let's adjust the margin on the content panels to push them down
-   when the update bar is NOT hidden.
-*/
 
-
-/* 🆕 Make Input Rows Stack on Mobile for Inputs/Buttons */
 @media screen and (max-width: 600px) {
-    /* Targets the rows in the Income input card and Expense input card */
     #incomeInputCard .row, 
     #addDailyExpenseSection .row,
     #addRecurringItemSection .row {
@@ -308,13 +293,11 @@ body {
     .input-col {
         width: 100%;
     }
-    /* Buttons should take full width when stacked */
     #saveIncome, #addExtraIncome, #addExpBtn, #addRecurringItemBtn,
     #exportCSV, #clearAll {
         width: 100%;
         margin-top: 8px;
     }
-    /* Ensure radio buttons (for recurring) stay inline */
     #addRecurringItemSection .mdl-radio {
         width: auto;
     }
