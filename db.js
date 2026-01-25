@@ -3,6 +3,16 @@ const DB_NAME = "SmartFinanceDB_v1";
 const DB_STORE = "months";
 let db;
 
+// PHASE 1: Safe Math Helper for Floating Point precision
+function safeSum(arr, key = 'amount') {
+  if (!arr || !Array.isArray(arr)) return 0;
+  const totalInCents = arr.reduce((sum, item) => {
+    const val = Number(item[key] || 0);
+    return sum + Math.round(val * 100);
+  }, 0);
+  return totalInCents / 100;
+}
+
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 2);
@@ -76,88 +86,53 @@ async function clearAllData() {
   });
 }
 
-/**
- * ensureMonth: Now migrates Base Income and Recurring items 
- * from the previous month if the current month is empty.
- */
 async function ensureMonth(monthId) {
   let m = await getMonth(monthId);
-
-  // If the month is NEW (e.g. first time opening in a new month/year)
   if (!m) {
-    // Logic to find the previous month (handles Dec -> Jan)
     let [y, month] = monthId.split('-').map(Number);
     let prevMonthNum = month - 1;
     let prevYear = y;
-    if (prevMonthNum === 0) {
-      prevMonthNum = 12;
-      prevYear -= 1;
-    }
+    if (prevMonthNum === 0) { prevMonthNum = 12; prevYear -= 1; }
     const prevMonthId = `${prevYear}-${String(prevMonthNum).padStart(2, "0")}`;
-
-    // Attempt to fetch data from the previous month
     const prevData = await getMonth(prevMonthId);
 
     m = {
       id: monthId,
-      income: { 
-        base: prevData ? (prevData.income?.base || 0) : 0, 
-        extras: [] 
-      },
-      daily: [], 
-      recurringMonthly: prevData ? [...(prevData.recurringMonthly || [])] : [], 
+      income: { base: prevData ? (prevData.income?.base || 0) : 0, extras: [] },
+      daily: [],
+      recurringMonthly: prevData ? [...(prevData.recurringMonthly || [])] : [],
       recurringYearly: prevData ? [...(prevData.recurringYearly || [])] : [],
       investments: prevData ? { ...prevData.investments } : { sip: 0, stocks: 0, other: 0 }
     };
     await saveMonth(m);
   } else {
-    // Normalization logic for existing data records
     let saveNeeded = false;
-    if (typeof m.income === 'number') {
-      m.income = { base: m.income, extras: [] };
-      saveNeeded = true;
-    }
+    if (typeof m.income === 'number') { m.income = { base: m.income, extras: [] }; saveNeeded = true; }
     m.recurringMonthly = m.recurringMonthly || [];
     m.recurringYearly = m.recurringYearly || [];
     m.daily = m.daily || [];
     m.income.extras = m.income.extras || [];
     m.investments = m.investments || { sip: 0, stocks: 0, other: 0 };
-
-    // Clean up old legacy keys if they exist
     if (m.monthlyRecurring) { delete m.monthlyRecurring; saveNeeded = true; }
     if (m.yearlyRecurringDue) { delete m.yearlyRecurringDue; saveNeeded = true; }
-
     if (saveNeeded) await saveMonth(m);
   }
   return m;
 }
 
-/**
- * TRUTH-BASED CALCULATION: Actual surplus including daily expenses.
- */
 async function getFinancialSummary(monthId) {
   const m = await ensureMonth(monthId);
-
-  const totalIncome = m.income.base + (m.income.extras || []).reduce((sum, e) => sum + e.amount, 0);
-
-  const monthlyFixed = (m.recurringMonthly || []).reduce((sum, r) => sum + r.amount, 0);
-  const yearlyFixedSlice = (m.recurringYearly || []).reduce((sum, r) => sum + (r.amount / 12), 0);
+  // PHASE 1: Updated to use safeSum
+  const totalIncome = (m.income.base || 0) + safeSum(m.income.extras);
+  const monthlyFixed = safeSum(m.recurringMonthly);
+  const yearlyFixedSlice = (m.recurringYearly || []).reduce((sum, r) => sum + Math.round((Number(r.amount) / 12) * 100), 0) / 100;
   const totalEffectiveRecurring = monthlyFixed + yearlyFixedSlice;
-
-  const totalDaily = (m.daily || []).reduce((sum, d) => sum + d.amount, 0);
+  const totalDaily = safeSum(m.daily);
 
   const expenseGoal = totalIncome * 0.50;
   const prepayFixed = totalIncome * 0.10;
-
   const trueSurplus = expenseGoal - totalEffectiveRecurring - totalDaily;
   const totalPrepayPower = trueSurplus + prepayFixed;
 
-  return {
-    totalIncome,
-    totalEffectiveRecurring,
-    totalDaily,
-    expenseGoal,
-    trueSurplus,
-    totalPrepayPower
-  };
+  return { totalIncome, totalEffectiveRecurring, totalDaily, expenseGoal, trueSurplus, totalPrepayPower };
 }
