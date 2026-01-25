@@ -12,6 +12,7 @@
   const yearlyDueThisMonthDisplay = document.getElementById('yearlyDueThisMonthDisplay');
   const effectiveMonthlyRecurringDisplay = document.getElementById('effectiveMonthlyRecurringDisplay');
   const totalMonthlyExpenseDisplay = document.getElementById('totalMonthlyExpenseDisplay');
+
   const savedDisplay = document.getElementById('savedDisplay');
   const goalExpDisplay = document.getElementById('goalExpDisplay');
   const goalInvDisplay = document.getElementById('goalInvDisplay');
@@ -51,18 +52,22 @@
   const updateBar = document.getElementById('updateBar'); 
   
   let deferredPrompt;
-  let viewingMonth = new Date().toISOString().slice(0,7);
+  // Initialize viewingMonth to current local year-month
+  let viewingMonth = new Date().toLocaleDateString('en-CA').slice(0,7);
 
   function getReadableMonthName(id) {
     const [y, m] = id.split('-');
     return new Date(y, m - 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
   }
 
-  function setMonthLabel(id){ currentMonthDisplay.textContent = getReadableMonthName(id); }
+  function setMonthLabel(id){
+    currentMonthDisplay.textContent = getReadableMonthName(id);
+  }
+  
   function fmt(val){ return `₹ ${Number(val || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
   function getMonthName(monthNum){ return new Date(2000, monthNum - 1, 1).toLocaleString(undefined, {month:'long'}); }
   
-  // PHASE 1: Updated Floating Point Math Fix for UI sums
+  // PHASE 1 FIX: Floating Point Math for UI sums
   function sumAmounts(list){ 
     return (list || []).reduce((sum, item) => {
       return (Math.round(sum * 100) + Math.round(Number(item.amount || 0) * 100)) / 100;
@@ -100,13 +105,11 @@
     refreshDashboard();
   }
 
-  // PHASE 1: New function for Daily Expense Deletion
+  // PHASE 1 FIX: New function for Daily Expense Deletion
   async function deleteDailyExpense(event) {
     if (!confirm('Delete this expense?')) return;
     const idToDelete = Number(event.currentTarget.dataset.id);
-    const dateStr = event.currentTarget.dataset.date;
-    const targetMonthId = dateStr.slice(0, 7);
-    const m = await ensureMonth(targetMonthId);
+    const m = await ensureMonth(viewingMonth);
     m.daily = m.daily.filter(item => item.ts !== idToDelete);
     await saveMonth(m);
     refreshDashboard();
@@ -141,7 +144,7 @@
     document.querySelectorAll('.delete-rec').forEach(btn => btn.addEventListener('click', deleteRecurringItem));
   }
 
-  // PHASE 1: Updated Daily Expense Rendering to include delete buttons
+  // PHASE 1 FIX: Updated Daily Expense Rendering to include delete buttons
   async function renderExpenseList(monthId){
     const m = await getMonth(monthId);
     currentMonthExpenseList.innerHTML = '';
@@ -157,12 +160,13 @@
             <span class="mdl-list__item-sub-title">${e.category} | ${e.note || ''} (${e.date})</span>
           </span>
           <span class="mdl-list__item-secondary-content">
-            <button class="mdl-button mdl-js-button mdl-button--icon delete-daily" data-id="${e.ts}" data-date="${e.date}">
+            <button class="mdl-button mdl-js-button mdl-button--icon delete-daily" data-id="${e.ts}">
               <i class="material-icons" style="color:#F44336;">delete_outline</i>
             </button>
           </span>`;
         currentMonthExpenseList.appendChild(li);
     });
+    // Attach deletion listeners
     document.querySelectorAll('.delete-daily').forEach(btn => btn.addEventListener('click', deleteDailyExpense));
   }
 
@@ -290,7 +294,7 @@
     const amount = Number(expAmount.value || 0);
     const category = (expCategory.value || 'Miscellaneous').trim();
     if(!amount || amount <= 0) return;
-    // PHASE 1: Local Date Fix for entry
+    // PHASE 1 FIX: Local Date string for entry
     const dateStr = expDate.value || new Date().toLocaleDateString('en-CA');
     const m = await ensureMonth(dateStr.slice(0, 7));
     m.daily.push({ amount, category, note: expNote.value || '', date: dateStr, ts: Date.now() });
@@ -334,7 +338,7 @@
     }
   }
   
-  // PHASE 1: Local Date Fix for initial display
+  // PHASE 1 FIX: Initial Local Date display
   expDate.value = new Date().toLocaleDateString('en-CA');
   
   await ensureMonth(viewingMonth);
