@@ -52,10 +52,7 @@
   const updateBar = document.getElementById('updateBar'); 
   
   let deferredPrompt;
-  // Initialize viewingMonth to current local year-month
   let viewingMonth = new Date().toLocaleDateString('en-CA').slice(0,7);
-
-  // --- PHASE 3: Navigation Debounce State ---
   let isNavigating = false;
 
   function getReadableMonthName(id) {
@@ -76,14 +73,24 @@
     }, 0); 
   }
   
+  // MODIFIED: Robust category populator
   async function populateCategoryDatalist(){
     const allMonths = await listMonths();
     const uniqueCategories = new Set(DEFAULT_CATEGORIES);
-    allMonths.forEach(m => { (m.daily || []).forEach(e => { if (e.category) uniqueCategories.add(e.category.trim()); }); });
+    
+    // Add custom categories found in database history
+    allMonths.forEach(m => { 
+        (m.daily || []).forEach(e => { 
+            if (e.category) uniqueCategories.add(e.category.trim()); 
+        }); 
+    });
+
     if (categorySuggestions) {
       categorySuggestions.innerHTML = '';
       Array.from(uniqueCategories).sort().forEach(cat => {
-          const option = document.createElement('option'); option.value = cat; categorySuggestions.appendChild(option);
+          const option = document.createElement('option'); 
+          option.value = cat; 
+          categorySuggestions.appendChild(option);
       });
     }
   }
@@ -259,26 +266,17 @@
     });
   }
   
-  // PHASE 3 FIX: Debounced Month Navigation
   async function changeMonth(delta) {
     if (isNavigating) return;
     isNavigating = true;
-    
-    // UI Feedback
     currentMonthDisplay.classList.add('loading-lock');
-    
     let [y, m] = viewingMonth.split('-').map(Number);
     m += delta;
     if (m === 0) { m = 12; y -= 1; }
     else if (m === 13) { m = 1; y += 1; }
-    
     viewingMonth = `${y}-${String(m).padStart(2, '0')}`;
-    
-    // Clear History Detail during switch
     if(monthDetail) monthDetail.innerHTML = '';
-    
     await refreshDashboard();
-    
     currentMonthDisplay.classList.remove('loading-lock');
     isNavigating = false;
   }
@@ -380,21 +378,5 @@
     installBtn.addEventListener('click', async () => {
       if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; installBtn.classList.add('hidden'); }
     });
-  }
-
-  // Export/Import logic left intact
-  async function exportFullBackup() {
-    const allData = await listMonths();
-    const backup = { appName: "SmartFinanceDB", exportedAt: new Date().toISOString(), data: allData };
-    return JSON.stringify(backup);
-  }
-
-  async function importFullBackup(jsonString) {
-    try {
-      const backup = JSON.parse(jsonString);
-      if (backup.appName !== "SmartFinanceDB") return false;
-      for (const month of backup.data) { await saveMonth(month); }
-      return true;
-    } catch (e) { console.error("Import failed", e); return false; }
   }
 })();
