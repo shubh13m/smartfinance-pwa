@@ -49,7 +49,7 @@
   const monthsList = document.getElementById('monthsList');
   const monthDetail = document.getElementById('monthDetail');
   const installBtn = document.getElementById('installBtn');
-  const updateBar = document.getElementById('updateBar'); 
+  const updateBar = document.getElementById('updateBar');  
   
   let deferredPrompt;
   let viewingMonth = new Date().toLocaleDateString('en-CA').slice(0,7);
@@ -73,12 +73,10 @@
     }, 0); 
   }
   
-  // MODIFIED: Robust category populator
   async function populateCategoryDatalist(){
     const allMonths = await listMonths();
     const uniqueCategories = new Set(DEFAULT_CATEGORIES);
     
-    // Add custom categories found in database history
     allMonths.forEach(m => { 
         (m.daily || []).forEach(e => { 
             if (e.category) uniqueCategories.add(e.category.trim()); 
@@ -206,17 +204,19 @@
         totalMonthlyExpenseDisplay.style.color = totalMonthlyExpense > (totalIncome * 0.5) ? "#F44336" : "#212121";
     }
 
-    const goalExp = totalIncome * 0.50;
-    const goalInv = totalIncome * 0.20;
-    const goalSav = totalIncome * 0.20;
-    const goalPre = totalIncome * 0.10;
+    // FIX: Guard against ₹0 income causing confusing strategy goals
+    const isIncomeSet = totalIncome > 0;
+    const goalExp = isIncomeSet ? totalIncome * 0.50 : 0;
+    const goalInv = isIncomeSet ? totalIncome * 0.20 : 0;
+    const goalSav = isIncomeSet ? totalIncome * 0.20 : 0;
+    const goalPre = isIncomeSet ? totalIncome * 0.10 : 0;
 
     goalExpDisplay.textContent = fmt(goalExp);
     goalInvDisplay.textContent = fmt(goalInv);
     goalSavDisplay.textContent = fmt(goalSav);
     goalPreDisplay.textContent = fmt(goalPre);
 
-    const surplus = goalExp - totalMonthlyExpense;
+    const surplus = isIncomeSet ? goalExp - totalMonthlyExpense : 0;
     surplusDisplay.textContent = fmt(surplus);
     
     if (surplus < 0) {
@@ -252,12 +252,13 @@
         const m = await getMonth(id);
         const dailySum = sumAmounts(m.daily);
         const incomeSum = Number(m.income.base || 0) + sumAmounts(m.income.extras);
+        const recurringSum = sumAmounts(m.recurringMonthly);
         monthDetail.innerHTML = `
           <div style="background:#f9f9f9; padding:15px; border-radius:8px;">
             <h4 style="margin-top:0;">${getReadableMonthName(id)}</h4>
             <p><strong>Total Income:</strong> ${fmt(incomeSum)}</p>
             <p><strong>Daily Expenses:</strong> ${fmt(dailySum)}</p>
-            <p><strong>Net Savings:</strong> ${fmt(incomeSum - (dailySum + sumAmounts(m.recurringMonthly)))}</p>
+            <p><strong>Net Savings:</strong> ${fmt(incomeSum - (dailySum + recurringSum))}</p>
             <p style="font-size:0.8em; color:#666;">(View full details by switching to this month using Dashboard arrows)</p>
           </div>
         `;
@@ -306,7 +307,11 @@
 
   addExpBtn.addEventListener('click', async ()=>{
     const amount = Number(expAmount.value || 0);
-    const category = (expCategory.value || 'Miscellaneous').trim();
+    let category = (expCategory.value || 'Miscellaneous').trim();
+    
+    // FIX: Normalize category to "Title Case" to prevent duplicate tags
+    category = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+
     if(!amount || amount <= 0) return;
     const dateStr = expDate.value || new Date().toLocaleDateString('en-CA');
     const m = await ensureMonth(dateStr.slice(0, 7));
