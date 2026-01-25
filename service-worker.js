@@ -7,6 +7,7 @@ const ASSETS = [
     'style.css',
     'app.js',
     'db.js',
+    'sync.js', // Added to assets list for reliability
     'manifest.json',
     'icon-192.png',
     'icon-512.png',
@@ -41,22 +42,33 @@ self.addEventListener('activate', evt => {
     return self.clients.claim();
 });
 
-// --- FETCH: PHASE 3 - NETWORK FIRST STRATEGY ---
-// This ensures that bug fixes reach the user immediately if they have a connection.
+// --- FETCH: PHASE 3 - NETWORK FIRST WITH TIMEOUT STRATEGY ---
 self.addEventListener('fetch', evt => {
+  // We only cache GET requests
+  if (evt.request.method !== 'GET') return;
+
   evt.respondWith(
-    fetch(evt.request).then(networkRes => {
-      // Check if we received a valid response
-      if(networkRes && networkRes.status === 200) {
-        const resClone = networkRes.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(evt.request, resClone);
+    // Create a timeout promise to prevent hanging on slow networks
+    new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        caches.match(evt.request).then(res => {
+          if (res) resolve(res);
         });
-      }
-      return networkRes;
-    }).catch(() => {
-      // If network fails (offline), fall back to cache
-      return caches.match(evt.request);
+      }, 3000); // 3-second timeout
+
+      fetch(evt.request).then(networkRes => {
+        clearTimeout(timeoutId);
+        if(networkRes && networkRes.status === 200) {
+          const resClone = networkRes.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(evt.request, resClone);
+          });
+        }
+        resolve(networkRes);
+      }).catch(() => {
+        clearTimeout(timeoutId);
+        resolve(caches.match(evt.request));
+      });
     })
   );
 });
