@@ -1,12 +1,24 @@
 {
-  "name": "SmartFinance",
-  "short_name": "Finance",
-  "start_url": "./index.html",
+  "name": "SmartFinanceDB",
+  "short_name": "SmartFinance",
+  "description": "Personal finance tracker with Google Drive sync and 50/20/20/10 strategy.",
+  "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1976d2",
-  "icons":[
-    {"src":"icon-192.png","sizes":"192x192","type":"image/png"},
-    {"src":"icon-512.png","sizes":"512x512","type":"image/png"}
+  "orientation": "portrait",
+  "background_color": "#F8F9FA",
+  "theme_color": "#007BFF",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }
