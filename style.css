@@ -2,252 +2,134 @@
    1. ROOT VARIABLES (Color Palette)
    ========================================= */
 :root {
-  /* Branding Colors - Synced with MDL Indigo */
   --primary: #3f51b5;
+  --primary-dark: #303f9f;
   --danger: #d32f2f;
   --success: #388e3c;
-  
-  /* UI Colors */
-  --bg: #F8F9FA;
-  --text: #212529;
-  --muted: #6C757D;
-  --card-bg: #FFFFFF;
+  --bg: #f5f5f5;
+  --card-bg: #ffffff;
 }
 
 /* =========================================
-   2. GLOBAL RESET & BASE STYLES
+   2. GLOBAL RESET
    ========================================= */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
 body {
-  font-family: 'Inter', Arial, Helvetica, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  margin: 0;
-  min-height: 100vh;
-  /* Removed flex-direction to prevent layout breakage */
+  background-color: var(--bg);
+  font-family: 'Inter', sans-serif;
 }
 
 /* =========================================
-   3. LAYOUT & CONTAINERS
+   3. MDL OVERRIDES (The Beauty Fix)
    ========================================= */
+.mdl-layout__header {
+  background-color: var(--primary) !important;
+}
 
-/* Fix: Ensuring content is visible below the fixed topbar */
-.mdl-layout__content.container {
-  padding: 8px;
-  width: 100%;
+.mdl-layout__content {
+  padding: 16px;
+  max-width: 1000px;
   margin: 0 auto;
-  display: block;
-}
-
-@media screen and (min-width: 600px) {
-  .mdl-layout__content.container {
-    padding: 24px;
-    max-width: 1000px;
-  }
-}
-
-.topbar {
-  position: fixed; 
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 56px;
-  z-index: 1000;
-  background: var(--primary); /* Changed to primary for branding */
-  color: white;
-  padding: 0 16px; 
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.topbar h1 {
-    font-size: 1.2rem;
-    margin: 0;
-    font-weight: 500;
+  width: 100%;
 }
 
 .mdl-card {
-  background: var(--card-bg);
-  padding: 0;
-  border-radius: 8px; 
-  margin-bottom: 16px; 
   width: 100%;
-  min-height: 0; /* Prevents unwanted stretching */
+  margin-bottom: 20px;
+  border-radius: 8px;
+  overflow: visible; /* Allows shadows to breathe */
 }
 
-.mdl-card__title {
-    padding: 16px; 
+/* Tab Bar Styling */
+.mdl-tabs__tab-bar {
+  justify-content: flex-start;
+  background: var(--card-bg);
+  border-bottom: 1px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
-.mdl-card__title-text {
-    font-size: 1.1rem;
-    font-weight: 500;
-}
-
-.mdl-card__supporting-text {
-    width: 100%;
-    padding: 16px;
-    color: var(--text);
-}
-
-.footer {
-  text-align: center;
-  padding: 20px;
-  color: var(--muted);
-  font-size: 12px;
+.mdl-tabs__tab {
+  flex-grow: 1;
 }
 
 /* =========================================
-   4. UTILITIES & COMPONENTS
+   4. DASHBOARD & UI COMPONENTS
    ========================================= */
-.row {
-  display: flex;
-  gap: 12px; 
-  margin: 12px 0;
-  align-items: center;
-}
-
-.input-col {
-  flex: 1;
-}
-
-.mdl-card__supporting-text > .row {
-    flex-wrap: wrap; 
-}
-
-.hidden {
-  display: none !important;
-}
-
-/* Navigation Debounce UI State */
-.loading-lock {
-    pointer-events: none;
-    opacity: 0.6;
-}
-
-.small-btn {
-  padding: 0 8px; 
-  height: 32px; 
-  line-height: 32px;
-  font-size: 12px;
-}
-
-.muted {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-/* =========================================
-   5. DASHBOARD SPECIFIC STYLES
-   ========================================= */
-
 .dashboard-summary .row {
   display: flex;
   justify-content: space-between;
-  padding: 6px 0; 
-  margin: 0;
-  font-size: 14px; 
+  padding: 8px 0;
+  align-items: center;
 }
 
-.dashboard-summary .row.total {
+.row.total {
   font-weight: bold;
-  font-size: 15px;
+  border-top: 1px solid #eee;
+  margin-top: 8px;
   padding-top: 12px;
-  border-top: 1px solid rgba(0,0,0,0.05);
 }
 
-.dashboard-summary .row.income {
-    color: var(--primary);
-}
+.income { color: var(--primary); }
+.expense { color: var(--danger); }
 
-.dashboard-summary .row.expense {
-    color: var(--danger);
-}
-
-.dashboard-summary .row.saved {
-  font-weight: bold;
-  color: var(--success); 
-  background-color: #e8f5e9; 
-  padding: 12px;
-  margin-top: 12px;
+.saved-box {
+  background-color: #e8f5e9;
+  color: var(--success);
+  padding: 16px;
   border-radius: 4px;
+  margin-top: 16px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+}
+
+.strategy-box {
+  background: #fafafa;
+  border-left: 4px solid var(--success);
+  padding: 16px;
+  margin: 20px 0;
 }
 
 .month-selector-row {
-    justify-content: space-between !important;
-    padding: 8px 0 16px 0 !important; 
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
 }
 
 .current-month-label {
-    font-weight: 500;
-    font-size: 1.1em; 
+  font-weight: 500;
+  font-size: 18px;
+  color: #444;
 }
 
 /* =========================================
-   6. FLOATING ACTION BUTTON (FAB)
+   5. UTILITIES
    ========================================= */
+.hidden { display: none !important; }
+
 .floating-btn {
   position: fixed;
-  bottom: 24px; 
-  right: 24px; 
-  z-index: 900;
-}
-
-/* =========================================
-   7. MDL CUSTOMIZATIONS & TAB ADJUSTMENTS
-   ========================================= */
-
-.mdl-tabs__tab-bar {
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-    background: var(--card-bg); 
-    position: sticky;
-    top: 56px; /* Sits exactly below topbar */
-    z-index: 999;
-}
-
-.mdl-tabs__tab.is-active {
-    color: var(--primary) !important;
-}
-
-.mdl-tabs__tab.is-active::after {
-    background: var(--primary) !important;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
 }
 
 #updateBar {
-  position: fixed !important;
-  top: 56px !important; 
-  left: 0;
-  right: 0;
-  z-index: 998; 
   background: #323232;
   color: white;
   padding: 8px 16px;
   display: flex;
   justify-content: space-between;
-  align-items: center; 
+  align-items: center;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 2000;
 }
 
 @media screen and (max-width: 600px) {
-    .row {
-        flex-wrap: wrap;
-    }
-    .input-col {
-        min-width: 100%;
-    }
-    .mdl-button--raised {
-        width: 100%;
-    }
-}
-
-/* =========================================
-   8. CATEGORY DROPDOWN FIX
-   ========================================= */
-#expCategory::-webkit-calendar-picker-indicator {
-    opacity: 0.6;
+  .mdl-layout__content { padding: 8px; }
+  .mdl-tabs__tab { font-size: 12px; padding: 0 8px; }
 }
