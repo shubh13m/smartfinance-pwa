@@ -302,3 +302,16 @@ body {
         width: auto;
     }
 }
+
+/* =========================================
+   8. CATEGORY DROPDOWN FIX
+   ========================================= */
+#expCategory::-webkit-calendar-picker-indicator {
+    display: block !important;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+#expCategory::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
