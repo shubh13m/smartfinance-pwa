@@ -23,14 +23,17 @@
   </style>
 </head>
 <body>
-  <header class="topbar mdl-shadow--2dp">
-    <div class="container-row">
+  <header class="topbar">
       <h1>SmartFinance</h1>
       <div>
         <button id="installBtn" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored small-btn hidden">Install</button>
       </div>
-    </div>
   </header>
+
+  <div id="updateBar" class="hidden">
+      <span>New version available.</span>
+      <button id="reloadAppBtn" class="mdl-button mdl-js-button mdl-button--raised" style="background-color: var(--success) !important; color: white;">Reload</button>
+  </div>
 
   <main class="mdl-layout__content container">
     <div class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect">
@@ -44,7 +47,7 @@
       <div class="mdl-tabs__panel is-active" id="dashboard-panel">
         <section id="dashboardSection" class="mdl-card mdl-shadow--2dp">
           <div class="mdl-card__supporting-text dashboard-summary">
-            <div class="row nav month-selector-row">
+            <div class="row month-selector-row">
               <button class="mdl-button mdl-js-button" id="prevMonthBtn">← Prev</button>
               <span id="currentMonthDisplay" class="current-month-label"></span> 
               <button class="mdl-button mdl-js-button" id="nextMonthBtn">Next →</button>
@@ -149,11 +152,6 @@
           </div>
         </section>
       </div>
-    </div>
-
-    <div id="updateBar" class="mdl-shadow--4dp hidden" style="position: fixed; bottom: 0; left: 0; right: 0; background: #3f51b5; color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; z-index: 1000;">
-        <span>New version available.</span>
-        <button id="reloadAppBtn" class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" style="color: white; background-color: #4CAF50 !important;">Reload</button>
     </div>
   </main>
   
