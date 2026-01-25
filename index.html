@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#3f51b5">
   <title>SmartFinance — PWA</title>
   
   <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
@@ -32,7 +33,7 @@
 
   <div id="updateBar" class="hidden">
       <span>New version available.</span>
-      <button id="reloadAppBtn" class="mdl-button mdl-js-button mdl-button--raised" style="background-color: var(--success) !important; color: white;">Reload</button>
+      <button id="reloadAppBtn" class="mdl-button mdl-js-button mdl-button--raised" style="background-color: #4CAF50 !important; color: white;">Reload</button>
   </div>
 
   <main class="mdl-layout__content container">
@@ -150,10 +151,12 @@
           <div class="mdl-card__supporting-text">
             <div id="monthsList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
             <div id="monthDetail" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;"></div>
-            <div class="row" style="margin-top: 20px;">
+            <div class="row" style="margin-top: 20px; flex-wrap: wrap; gap: 10px;">
               <button id="exportCSV" class="mdl-button mdl-js-button mdl-button--raised">Export CSV</button>
               <button id="clearAll" class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent">Clear All</button>
-              <button id="syncDriveBtn" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"><i class="material-icons">cloud_upload</i> Sync to Drive</button>
+              <button id="syncDriveBtn" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+                <i class="material-icons">cloud_upload</i> Sync to Drive
+              </button>
             </div>
           </div>
         </section>
@@ -166,6 +169,7 @@
   
   <script src="db.js"></script>
   <script src="app.js"></script>
+  <script src="sync.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </body>
 </html>
