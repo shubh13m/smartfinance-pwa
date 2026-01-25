@@ -1,4 +1,4 @@
-const CLIENT_ID = '301393332682-jgrlf96jip1jup4u5gkj89u9ccfk39nn.apps.googleusercontent.com'; // <--- Paste your ID here
+const CLIENT_ID = '301393332682-jgrlf96jip1jup4u5gkj89u9ccfk39nn.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 
 let tokenClient;
@@ -10,48 +10,92 @@ function initSync() {
     client_id: CLIENT_ID,
     scope: SCOPES,
     callback: async (response) => {
-      if (response.error !== undefined) throw (response);
+      if (response.error !== undefined) {
+        setSyncLoading(false);
+        throw (response);
+      }
       accessToken = response.access_token;
       await uploadToDrive();
     },
   });
 }
 
+// Helper to find if the backup file already exists to prevent duplicates
+async function findExistingFileId() {
+  const response = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='smartfinance_backup.json'+and+'appDataFolder'+in+parents&spaces=appDataFolder`,
+    {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    }
+  );
+  const data = await response.json();
+  return (data.files && data.files.length > 0) ? data.files[0].id : null;
+}
+
 async function uploadToDrive() {
-  const content = await exportFullBackup();
-  const fileContent = new Blob([content], { type: 'application/json' });
-  
-  // Metadata for the hidden AppData folder
-  const metadata = {
-    name: 'smartfinance_backup.json',
-    parents: ['appDataFolder']
-  };
-
-  const formData = new FormData();
-  formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-  formData.append('file', fileContent);
-
+  setSyncLoading(true);
   try {
-    const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-      method: 'POST',
+    const content = await exportFullBackup();
+    const fileContent = new Blob([content], { type: 'application/json' });
+    
+    const fileId = await findExistingFileId();
+    let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    let method = 'POST';
+
+    // If file exists, update it instead of creating a new one
+    if (fileId) {
+      url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+      method = 'PATCH';
+    }
+
+    const metadata = {
+      name: 'smartfinance_backup.json',
+      parents: fileId ? [] : ['appDataFolder'] // Parents only needed for new files
+    };
+
+    const formData = new FormData();
+    formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    formData.append('file', fileContent);
+
+    const response = await fetch(url, {
+      method: method,
       headers: { 'Authorization': `Bearer ${accessToken}` },
       body: formData
     });
     
     if (response.ok) {
-      alert("✅ Sync Complete! Your data is safe in Google Drive.");
+      alert("✅ Sync Complete! Your data is updated in Google Drive.");
     } else {
-      alert("❌ Sync failed. Check console for details.");
+      const errData = await response.json();
+      console.error("Sync Error Details:", errData);
+      alert("❌ Sync failed. See console for details.");
     }
   } catch (err) {
     console.error("Upload error:", err);
+    alert("❌ An error occurred during sync.");
+  } finally {
+    setSyncLoading(false);
   }
 }
 
-// Attach event listener to your button
+// Helper to manage UI state during sync
+function setSyncLoading(isLoading) {
+  const btn = document.getElementById('syncDriveBtn');
+  if (!btn) return;
+  if (isLoading) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="material-icons">sync</i> Syncing...';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="material-icons">cloud_upload</i> Sync to Drive';
+  }
+}
+
+// Attach event listener
 document.getElementById('syncDriveBtn').addEventListener('click', () => {
+  setSyncLoading(true);
   if (!accessToken) {
-    initSync();
+    if (!tokenClient) initSync();
     tokenClient.requestAccessToken({ prompt: 'consent' });
   } else {
     uploadToDrive();
