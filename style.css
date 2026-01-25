@@ -1,135 +1,232 @@
 /* =========================================
-   1. ROOT VARIABLES (Color Palette)
+   1. ROOT VARIABLES (Restored Old Palette)
    ========================================= */
 :root {
-  --primary: #3f51b5;
-  --primary-dark: #303f9f;
-  --danger: #d32f2f;
-  --success: #388e3c;
-  --bg: #f5f5f5;
-  --card-bg: #ffffff;
+  /* Restored your favorite branding colors */
+  --primary: #007BFF;
+  --danger: #DC3545;
+  --success: #28A745;
+  
+  /* UI Colors */
+  --bg: #F8F9FA;
+  --text: #212529;
+  --muted: #6C757D;
+  --card-bg: #FFFFFF;
 }
 
 /* =========================================
-   2. GLOBAL RESET
+   2. GLOBAL RESET & BASE STYLES
    ========================================= */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
-  background-color: var(--bg);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* =========================================
-   3. MDL OVERRIDES (The Beauty Fix)
+   3. LAYOUT & CONTAINERS
    ========================================= */
-.mdl-layout__header {
-  background-color: var(--primary) !important;
-}
 
-.mdl-layout__content {
-  padding: 16px;
-  max-width: 1000px;
-  margin: 0 auto;
+/* Content offset below the fixed topbar (56px) */
+.mdl-layout__content.container {
+  padding: 8px;
   width: 100%;
+  margin: 56px auto 0 auto; 
+  display: block;
 }
 
-.mdl-card {
-  width: 100%;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  overflow: visible; /* Allows shadows to breathe */
+@media screen and (min-width: 600px) {
+  .mdl-layout__content.container {
+    padding: 16px;
+    max-width: 1000px;
+  }
 }
 
-/* Tab Bar Styling */
-.mdl-tabs__tab-bar {
-  justify-content: flex-start;
-  background: var(--card-bg);
-  border-bottom: 1px solid #e0e0e0;
-  position: sticky;
+/* Restored the White Sticky Topbar */
+.topbar {
+  position: fixed; 
   top: 0;
-  z-index: 5;
+  left: 0;
+  right: 0;
+  height: 56px;
+  z-index: 1000;
+  background: var(--card-bg);
+  padding: 0 16px; 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.mdl-tabs__tab {
-  flex-grow: 1;
+.topbar h1 {
+  font-size: 1.6rem; /* Restored larger size */
+  margin: 0;
+  font-weight: bold;
+  color: var(--text);
 }
 
 /* =========================================
-   4. DASHBOARD & UI COMPONENTS
+   4. CARDS & DASHBOARD (Restored Styling)
    ========================================= */
+.mdl-card {
+  background: var(--card-bg);
+  padding: 0;
+  border-radius: 8px; 
+  margin-bottom: 12px; 
+  width: 100%;
+}
+
+.mdl-card__title {
+  padding: 12px 16px; 
+}
+
+.mdl-card__title-text {
+  font-size: 1.25rem; 
+  font-weight: bold;
+}
+
+.mdl-card__supporting-text {
+  width: 100%;
+  padding: 16px;
+  color: var(--text);
+}
+
+/* Dashboard Summary Specifics */
+.dashboard-summary {
+  width: 100%;
+  padding: 0 !important;
+}
+
 .dashboard-summary .row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
-  align-items: center;
+  padding: 10px 16px; 
+  margin: 0;
+  font-size: 15px; 
 }
 
-.row.total {
+/* The "Grey Row" effect for Totals from your old style */
+.dashboard-summary .row.total {
   font-weight: bold;
-  border-top: 1px solid #eee;
-  margin-top: 8px;
-  padding-top: 12px;
+  font-size: 16px;
+  background-color: #f1f3f5; 
+  border-top: 1px solid rgba(0,0,0,0.05);
 }
 
-.income { color: var(--primary); }
-.expense { color: var(--danger); }
+.dashboard-summary .row.income { color: var(--primary); }
+.dashboard-summary .row.expense { color: var(--danger); }
 
-.saved-box {
-  background-color: #e8f5e9;
-  color: var(--success);
-  padding: 16px;
-  border-radius: 4px;
-  margin-top: 16px;
+/* The "Green Box" effect for Saved from your old style */
+.dashboard-summary .row.saved {
   font-weight: bold;
-  display: flex;
-  justify-content: space-between;
+  color: var(--success); 
+  background-color: #e6ffe6; 
+  border-radius: 0 0 8px 8px;
+  padding: 15px 16px;
 }
 
+/* Adapted styling for New Strategy Box */
 .strategy-box {
-  background: #fafafa;
-  border-left: 4px solid var(--success);
-  padding: 16px;
-  margin: 20px 0;
-}
-
-.month-selector-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 16px;
-}
-
-.current-month-label {
-  font-weight: 500;
-  font-size: 18px;
-  color: #444;
+  margin: 15px 16px;
+  padding: 15px;
+  background: #fdfdfd;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  border-left: 5px solid var(--success);
 }
 
 /* =========================================
-   5. UTILITIES
+   5. NAVIGATION & TABS
    ========================================= */
-.hidden { display: none !important; }
-
-.floating-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 999;
+.month-selector-row {
+  justify-content: space-around;
+  padding: 12px 0; 
+  align-items: center;
+  background-color: var(--card-bg);
 }
 
+.current-month-label {
+  font-weight: bold;
+  font-size: 1.1em; 
+}
+
+.mdl-tabs__tab-bar {
+  position: sticky;
+  top: 56px;
+  z-index: 999;
+  background: var(--card-bg);
+  border-bottom: 2px solid var(--bg);
+}
+
+.mdl-tabs__tab.is-active {
+  color: var(--primary) !important;
+}
+
+.mdl-tabs__tab.is-active::after {
+  background: var(--primary) !important;
+  height: 3px;
+}
+
+/* =========================================
+   6. BUTTONS & UI
+   ========================================= */
+.floating-btn {
+  position: fixed;
+  bottom: 16px; 
+  right: 16px; 
+  z-index: 900;
+  background-color: var(--primary) !important;
+}
+
+.mdl-button--colored {
+  background: var(--primary) !important;
+}
+
+.mdl-button--accent {
+  background-color: var(--danger) !important;
+}
+
+.hidden { display: none !important; }
+
 #updateBar {
-  background: #323232;
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  background: var(--primary);
   color: white;
-  padding: 8px 16px;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: fixed;
-  top: 0;
-  width: 100%;
-  z-index: 2000;
 }
 
+/* =========================================
+   7. MOBILE RESPONSIVENESS
+   ========================================= */
 @media screen and (max-width: 600px) {
-  .mdl-layout__content { padding: 8px; }
-  .mdl-tabs__tab { font-size: 12px; padding: 0 8px; }
+  .row { flex-wrap: wrap; }
+  .input-col { min-width: 100%; }
+  
+  /* Stacking inputs for better mobile feel as per old style */
+  #incomeInputCard .row, 
+  #addDailyExpenseSection .row,
+  #addRecurringItemSection .row {
+      flex-direction: column;
+      align-items: stretch;
+  }
+  
+  .mdl-button--raised {
+    width: 100%;
+    margin-top: 5px;
+  }
 }
