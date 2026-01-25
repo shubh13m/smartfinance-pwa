@@ -109,7 +109,7 @@
     if (type === 'monthly') { m.recurringMonthly = m.recurringMonthly.filter(item => (item.ts || 0) !== idToDelete); }
     else if (type === 'yearly') { m.recurringYearly = m.recurringYearly.filter(item => (item.ts || 0) !== idToDelete); }
     await saveMonth(m);
-    refreshDashboard();
+    await refreshDashboard();
   }
 
   async function deleteDailyExpense(event) {
@@ -118,7 +118,7 @@
     const m = await ensureMonth(viewingMonth);
     m.daily = m.daily.filter(item => item.ts !== idToDelete);
     await saveMonth(m);
-    refreshDashboard();
+    await refreshDashboard();
   }
   
   function populateMonthSelects(){
@@ -204,7 +204,6 @@
         totalMonthlyExpenseDisplay.style.color = totalMonthlyExpense > (totalIncome * 0.5) ? "#F44336" : "#212121";
     }
 
-    // FIX: Guard against ₹0 income causing confusing strategy goals
     const isIncomeSet = totalIncome > 0;
     const goalExp = isIncomeSet ? totalIncome * 0.50 : 0;
     const goalInv = isIncomeSet ? totalIncome * 0.20 : 0;
@@ -238,6 +237,9 @@
     await renderRecurringList();
     await populateCategoryDatalist();
     await renderHistory();
+    
+    // FIX: Crucial for applying MDL styles to new list items and buttons
+    if (typeof upgradeMDL === "function") upgradeMDL();
   }
   
   async function renderHistory(){
@@ -262,6 +264,7 @@
             <p style="font-size:0.8em; color:#666;">(View full details by switching to this month using Dashboard arrows)</p>
           </div>
         `;
+        if (typeof upgradeMDL === "function") upgradeMDL();
       });
       monthsList.appendChild(btn);
     });
@@ -290,7 +293,7 @@
     const m = await ensureMonth(viewingMonth);
     m.income.base = amount;
     await saveMonth(m);
-    refreshDashboard();
+    await refreshDashboard();
     alert('Income saved!');
   });
 
@@ -302,14 +305,12 @@
     m.income.extras.push({ label, amount, ts: Date.now() });
     await saveMonth(m);
     extraLabel.value = ''; extraAmount.value = '';
-    refreshDashboard();
+    await refreshDashboard();
   });
 
   addExpBtn.addEventListener('click', async ()=>{
     const amount = Number(expAmount.value || 0);
     let category = (expCategory.value || 'Miscellaneous').trim();
-    
-    // FIX: Normalize category to "Title Case" to prevent duplicate tags
     category = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
 
     if(!amount || amount <= 0) return;
@@ -318,7 +319,7 @@
     m.daily.push({ amount, category, note: expNote.value || '', date: dateStr, ts: Date.now() });
     await saveMonth(m);
     expAmount.value=''; expCategory.value=''; expNote.value='';
-    refreshDashboard();
+    await refreshDashboard();
     alert('Expense saved');
   });
 
@@ -341,7 +342,7 @@
     }
     await saveMonth(m);
     recName.value = ''; recAmount.value = '';
-    refreshDashboard();
+    await refreshDashboard();
     alert('Recurring item saved!');
   });
 
@@ -363,9 +364,12 @@
   
   expDate.value = new Date().toLocaleDateString('en-CA');
   
-  await ensureMonth(viewingMonth);
-  populateMonthSelects();
-  refreshDashboard();
+  // Initial Load
+  (async function init() {
+    await ensureMonth(viewingMonth);
+    populateMonthSelects();
+    await refreshDashboard();
+  })();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').then(reg => {
