@@ -55,6 +55,9 @@
   // Initialize viewingMonth to current local year-month
   let viewingMonth = new Date().toLocaleDateString('en-CA').slice(0,7);
 
+  // --- PHASE 3: Navigation Debounce State ---
+  let isNavigating = false;
+
   function getReadableMonthName(id) {
     const [y, m] = id.split('-');
     return new Date(y, m - 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
@@ -67,7 +70,6 @@
   function fmt(val){ return `₹ ${Number(val || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
   function getMonthName(monthNum){ return new Date(2000, monthNum - 1, 1).toLocaleString(undefined, {month:'long'}); }
   
-  // PHASE 1 FIX: Floating Point Math for UI sums
   function sumAmounts(list){ 
     return (list || []).reduce((sum, item) => {
       return (Math.round(sum * 100) + Math.round(Number(item.amount || 0) * 100)) / 100;
@@ -105,7 +107,6 @@
     refreshDashboard();
   }
 
-  // PHASE 1 FIX: New function for Daily Expense Deletion
   async function deleteDailyExpense(event) {
     if (!confirm('Delete this expense?')) return;
     const idToDelete = Number(event.currentTarget.dataset.id);
@@ -144,7 +145,6 @@
     document.querySelectorAll('.delete-rec').forEach(btn => btn.addEventListener('click', deleteRecurringItem));
   }
 
-  // PHASE 1 FIX: Updated Daily Expense Rendering to include delete buttons
   async function renderExpenseList(monthId){
     const m = await getMonth(monthId);
     currentMonthExpenseList.innerHTML = '';
@@ -166,7 +166,6 @@
           </span>`;
         currentMonthExpenseList.appendChild(li);
     });
-    // Attach deletion listeners
     document.querySelectorAll('.delete-daily').forEach(btn => btn.addEventListener('click', deleteDailyExpense));
   }
 
@@ -260,18 +259,33 @@
     });
   }
   
-  prevMonthBtn.addEventListener('click', () => {
+  // PHASE 3 FIX: Debounced Month Navigation
+  async function changeMonth(delta) {
+    if (isNavigating) return;
+    isNavigating = true;
+    
+    // UI Feedback
+    currentMonthDisplay.classList.add('loading-lock');
+    
     let [y, m] = viewingMonth.split('-').map(Number);
-    m -= 1; if (m === 0) { m = 12; y -= 1; }
+    m += delta;
+    if (m === 0) { m = 12; y -= 1; }
+    else if (m === 13) { m = 1; y += 1; }
+    
     viewingMonth = `${y}-${String(m).padStart(2, '0')}`;
-    refreshDashboard();
-  });
-  nextMonthBtn.addEventListener('click', () => {
-    let [y, m] = viewingMonth.split('-').map(Number);
-    m += 1; if (m === 13) { m = 1; y += 1; }
-    viewingMonth = `${y}-${String(m).padStart(2, '0')}`;
-    refreshDashboard();
-  });
+    
+    // Clear History Detail during switch
+    if(monthDetail) monthDetail.innerHTML = '';
+    
+    await refreshDashboard();
+    
+    currentMonthDisplay.classList.remove('loading-lock');
+    isNavigating = false;
+  }
+
+  prevMonthBtn.addEventListener('click', () => changeMonth(-1));
+  nextMonthBtn.addEventListener('click', () => changeMonth(1));
+
   saveIncomeBtn.addEventListener('click', async () => {
     const amount = Number(incomeInput.value || 0);
     const m = await ensureMonth(viewingMonth);
@@ -280,6 +294,7 @@
     refreshDashboard();
     alert('Income saved!');
   });
+
   addExtraIncomeBtn.addEventListener('click', async () => {
     const label = (extraLabel.value || 'Extra').trim();
     const amount = Number(extraAmount.value || 0);
@@ -290,11 +305,11 @@
     extraLabel.value = ''; extraAmount.value = '';
     refreshDashboard();
   });
+
   addExpBtn.addEventListener('click', async ()=>{
     const amount = Number(expAmount.value || 0);
     const category = (expCategory.value || 'Miscellaneous').trim();
     if(!amount || amount <= 0) return;
-    // PHASE 1 FIX: Local Date string for entry
     const dateStr = expDate.value || new Date().toLocaleDateString('en-CA');
     const m = await ensureMonth(dateStr.slice(0, 7));
     m.daily.push({ amount, category, note: expNote.value || '', date: dateStr, ts: Date.now() });
@@ -303,8 +318,10 @@
     refreshDashboard();
     alert('Expense saved');
   });
+
   recFrequencyMonthly.addEventListener('change', () => { yearlyDueMonthInput.classList.add('hidden'); });
   recFrequencyYearly.addEventListener('change', () => { yearlyDueMonthInput.classList.remove('hidden'); });
+
   addRecurringItemBtn.addEventListener('click', async () => {
     const name = (recName.value || 'Item').trim();
     const amount = Number(recAmount.value || 0);
@@ -324,13 +341,16 @@
     refreshDashboard();
     alert('Recurring item saved!');
   });
+
   quickAddExpenseFAB.addEventListener('click', () => {
       const tab = document.querySelector('a[href="#expenses-panel"]');
       if (tab) tab.click();
   });
+
   clearAll.addEventListener('click', async () => {
     if(confirm('Delete ALL data?')) { await clearAllData(); window.location.reload(); }
   });
+
   function showUpdatePrompt() {
     if (updateBar) {
         updateBar.classList.remove('hidden');
@@ -338,7 +358,6 @@
     }
   }
   
-  // PHASE 1 FIX: Initial Local Date display
   expDate.value = new Date().toLocaleDateString('en-CA');
   
   await ensureMonth(viewingMonth);
@@ -363,18 +382,19 @@
     });
   }
 
-async function exportFullBackup() {
-  const allData = await listMonths();
-  const backup = { appName: "SmartFinanceDB", exportedAt: new Date().toISOString(), data: allData };
-  return JSON.stringify(backup);
-}
+  // Export/Import logic left intact
+  async function exportFullBackup() {
+    const allData = await listMonths();
+    const backup = { appName: "SmartFinanceDB", exportedAt: new Date().toISOString(), data: allData };
+    return JSON.stringify(backup);
+  }
 
-async function importFullBackup(jsonString) {
-  try {
-    const backup = JSON.parse(jsonString);
-    if (backup.appName !== "SmartFinanceDB") return false;
-    for (const month of backup.data) { await saveMonth(month); }
-    return true;
-  } catch (e) { console.error("Import failed", e); return false; }
-}
+  async function importFullBackup(jsonString) {
+    try {
+      const backup = JSON.parse(jsonString);
+      if (backup.appName !== "SmartFinanceDB") return false;
+      for (const month of backup.data) { await saveMonth(month); }
+      return true;
+    } catch (e) { console.error("Import failed", e); return false; }
+  }
 })();
