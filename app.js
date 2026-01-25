@@ -11,10 +11,7 @@
   const monthlyRecurringDisplay = document.getElementById('monthlyRecurringDisplay');
   const yearlyDueThisMonthDisplay = document.getElementById('yearlyDueThisMonthDisplay');
   const effectiveMonthlyRecurringDisplay = document.getElementById('effectiveMonthlyRecurringDisplay');
-  
-  // Reference for the Total Expense display
   const totalMonthlyExpenseDisplay = document.getElementById('totalMonthlyExpenseDisplay');
-
   const savedDisplay = document.getElementById('savedDisplay');
   const goalExpDisplay = document.getElementById('goalExpDisplay');
   const goalInvDisplay = document.getElementById('goalInvDisplay');
@@ -54,23 +51,23 @@
   const updateBar = document.getElementById('updateBar'); 
   
   let deferredPrompt;
-  // Initialize viewingMonth to current year-month (e.g., "2026-01")
   let viewingMonth = new Date().toISOString().slice(0,7);
 
-  function getMonthIdFromDate(dateStr) { return dateStr.slice(0, 7); }
-  
   function getReadableMonthName(id) {
     const [y, m] = id.split('-');
     return new Date(y, m - 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
   }
 
-  function setMonthLabel(id){
-    currentMonthDisplay.textContent = getReadableMonthName(id);
-  }
-  
+  function setMonthLabel(id){ currentMonthDisplay.textContent = getReadableMonthName(id); }
   function fmt(val){ return `₹ ${Number(val || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
   function getMonthName(monthNum){ return new Date(2000, monthNum - 1, 1).toLocaleString(undefined, {month:'long'}); }
-  function sumAmounts(list){ return (list || []).reduce((sum, item) => sum + Number(item.amount || 0), 0); }
+  
+  // PHASE 1: Updated Floating Point Math Fix for UI sums
+  function sumAmounts(list){ 
+    return (list || []).reduce((sum, item) => {
+      return (Math.round(sum * 100) + Math.round(Number(item.amount || 0) * 100)) / 100;
+    }, 0); 
+  }
   
   async function populateCategoryDatalist(){
     const allMonths = await listMonths();
@@ -99,6 +96,18 @@
     const m = await ensureMonth(viewingMonth); 
     if (type === 'monthly') { m.recurringMonthly = m.recurringMonthly.filter(item => (item.ts || 0) !== idToDelete); }
     else if (type === 'yearly') { m.recurringYearly = m.recurringYearly.filter(item => (item.ts || 0) !== idToDelete); }
+    await saveMonth(m);
+    refreshDashboard();
+  }
+
+  // PHASE 1: New function for Daily Expense Deletion
+  async function deleteDailyExpense(event) {
+    if (!confirm('Delete this expense?')) return;
+    const idToDelete = Number(event.currentTarget.dataset.id);
+    const dateStr = event.currentTarget.dataset.date;
+    const targetMonthId = dateStr.slice(0, 7);
+    const m = await ensureMonth(targetMonthId);
+    m.daily = m.daily.filter(item => item.ts !== idToDelete);
     await saveMonth(m);
     refreshDashboard();
   }
@@ -132,6 +141,7 @@
     document.querySelectorAll('.delete-rec').forEach(btn => btn.addEventListener('click', deleteRecurringItem));
   }
 
+  // PHASE 1: Updated Daily Expense Rendering to include delete buttons
   async function renderExpenseList(monthId){
     const m = await getMonth(monthId);
     currentMonthExpenseList.innerHTML = '';
@@ -141,9 +151,19 @@
     expenses.forEach(e => {
         const li = document.createElement('li');
         li.className = 'mdl-list__item mdl-list__item--two-line';
-        li.innerHTML = `<span class="mdl-list__item-primary-content"><span style="color:#F44336; font-weight:bold;">${fmt(e.amount)}</span><span class="mdl-list__item-sub-title">${e.category} | ${e.note || ''} (${e.date})</span></span>`;
+        li.innerHTML = `
+          <span class="mdl-list__item-primary-content">
+            <span style="color:#F44336; font-weight:bold;">${fmt(e.amount)}</span>
+            <span class="mdl-list__item-sub-title">${e.category} | ${e.note || ''} (${e.date})</span>
+          </span>
+          <span class="mdl-list__item-secondary-content">
+            <button class="mdl-button mdl-js-button mdl-button--icon delete-daily" data-id="${e.ts}" data-date="${e.date}">
+              <i class="material-icons" style="color:#F44336;">delete_outline</i>
+            </button>
+          </span>`;
         currentMonthExpenseList.appendChild(li);
     });
+    document.querySelectorAll('.delete-daily').forEach(btn => btn.addEventListener('click', deleteDailyExpense));
   }
 
   async function refreshDashboard(){
@@ -270,8 +290,9 @@
     const amount = Number(expAmount.value || 0);
     const category = (expCategory.value || 'Miscellaneous').trim();
     if(!amount || amount <= 0) return;
-    const dateStr = expDate.value || new Date().toISOString().slice(0,10);
-    const m = await ensureMonth(getMonthIdFromDate(dateStr));
+    // PHASE 1: Local Date Fix for entry
+    const dateStr = expDate.value || new Date().toLocaleDateString('en-CA');
+    const m = await ensureMonth(dateStr.slice(0, 7));
     m.daily.push({ amount, category, note: expNote.value || '', date: dateStr, ts: Date.now() });
     await saveMonth(m);
     expAmount.value=''; expCategory.value=''; expNote.value='';
@@ -312,9 +333,10 @@
         updateBar.querySelector('#reloadAppBtn').addEventListener('click', () => { window.location.reload(); });
     }
   }
-  expDate.value = new Date().toISOString().slice(0,10);
   
-  // INITIALIZE
+  // PHASE 1: Local Date Fix for initial display
+  expDate.value = new Date().toLocaleDateString('en-CA');
+  
   await ensureMonth(viewingMonth);
   populateMonthSelects();
   refreshDashboard();
@@ -336,33 +358,19 @@
       if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; installBtn.classList.add('hidden'); }
     });
   }
-/**
- * Packages all months into a single JSON string for backup
- */
+
 async function exportFullBackup() {
   const allData = await listMonths();
-  const backup = {
-    appName: "SmartFinanceDB",
-    exportedAt: new Date().toISOString(),
-    data: allData
-  };
+  const backup = { appName: "SmartFinanceDB", exportedAt: new Date().toISOString(), data: allData };
   return JSON.stringify(backup);
 }
 
-/**
- * Takes a JSON string and saves all months back into IndexedDB
- */
 async function importFullBackup(jsonString) {
   try {
     const backup = JSON.parse(jsonString);
     if (backup.appName !== "SmartFinanceDB") return false;
-    for (const month of backup.data) {
-      await saveMonth(month);
-    }
+    for (const month of backup.data) { await saveMonth(month); }
     return true;
-  } catch (e) {
-    console.error("Import failed", e);
-    return false;
-  }
+  } catch (e) { console.error("Import failed", e); return false; }
 }
 })();
