@@ -108,7 +108,13 @@
             <div class="mdl-card__title"><h2 class="mdl-card__title-text">Record Daily Expense</h2></div>
             <div class="mdl-card__supporting-text">
                 <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label"><input class="mdl-textfield__input" type="number" id="expAmount"><label class="mdl-textfield__label">Amount</label></div>
-                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label"><input class="mdl-textfield__input" type="text" id="expCategory" list="categorySuggestions"><label class="mdl-textfield__label">Category</label></div>
+                
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="expCategory" list="categorySuggestions">
+                  <label class="mdl-textfield__label">Category</label>
+                  <datalist id="categorySuggestions"></datalist>
+                </div>
+
                 <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label"><input class="mdl-textfield__input" type="text" id="expNote"><label class="mdl-textfield__label">Note</label></div>
                 <div class="row" style="padding-bottom: 15px;"><label>Date:</label><input id="expDate" type="date" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></div>
                 <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="addExpBtn">Save Expense</button>
