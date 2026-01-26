@@ -53,7 +53,10 @@
     const monthsList = document.getElementById('monthsList');
     const monthDetail = document.getElementById('monthDetail');
     const installBtn = document.getElementById('installBtn');
+    
+    // UI Fix References
     const updateBar = document.getElementById('updateBar');
+    const reloadAppBtn = document.getElementById('reloadAppBtn');
 
     let deferredPrompt;
     
@@ -127,7 +130,7 @@
         const extrasTotal = sumAmounts(m.income.extras);
         const totalIncome = baseIncome + extrasTotal;
 
-        incomeInput.value = baseIncome > 0 ? baseIncome : '';
+        if (incomeInput) incomeInput.value = baseIncome > 0 ? baseIncome : '';
         baseIncomeDisplay.textContent = fmt(baseIncome);
         extraIncomeDisplay.textContent = fmt(extrasTotal);
         totalIncomeDisplay.textContent = fmt(totalIncome);
@@ -268,8 +271,8 @@
         refreshDashboard();
     }
 
-    prevMonthBtn.onclick = () => changeMonth(-1);
-    nextMonthBtn.onclick = () => changeMonth(1);
+    if (prevMonthBtn) prevMonthBtn.onclick = () => changeMonth(-1);
+    if (nextMonthBtn) nextMonthBtn.onclick = () => changeMonth(1);
 
     async function changeMonth(delta) {
         if (isNavigating) return;
@@ -282,23 +285,27 @@
         isNavigating = false;
     }
 
-    saveIncomeBtn.onclick = async () => {
-        const m = await ensureMonth(viewingMonth);
-        m.income.base = Number(incomeInput.value);
-        await saveMonth(m);
-        refreshDashboard();
-    };
+    if (saveIncomeBtn) {
+        saveIncomeBtn.onclick = async () => {
+            const m = await ensureMonth(viewingMonth);
+            m.income.base = Number(incomeInput.value);
+            await saveMonth(m);
+            refreshDashboard();
+        };
+    }
 
-    addExpBtn.onclick = async () => {
-        const amount = Number(expAmount.value);
-        if (amount <= 0) return;
-        const dateStr = expDate.value || new Date().toISOString().split('T')[0];
-        const m = await ensureMonth(dateStr.slice(0, 7));
-        m.daily.push({ amount, category: expCategory.value, note: expNote.value, date: dateStr, ts: Date.now() });
-        await saveMonth(m);
-        expAmount.value = ''; expNote.value = '';
-        refreshDashboard();
-    };
+    if (addExpBtn) {
+        addExpBtn.onclick = async () => {
+            const amount = Number(expAmount.value);
+            if (amount <= 0) return;
+            const dateStr = expDate.value || new Date().toISOString().split('T')[0];
+            const m = await ensureMonth(dateStr.slice(0, 7));
+            m.daily.push({ amount, category: expCategory.value, note: expNote.value, date: dateStr, ts: Date.now() });
+            await saveMonth(m);
+            expAmount.value = ''; expNote.value = '';
+            refreshDashboard();
+        };
+    }
 
     // --- Initialization ---
     (async function init() {
@@ -308,31 +315,41 @@
             
             // Populate Dropdowns
             const monthsArr = Array.from({ length: 12 }, (_, i) => ({ v: i + 1, n: getMonthName(i + 1) }));
-            recDueMonth.innerHTML = '<option value="">due month</option>';
-            monthsArr.forEach(m => {
-                const opt = document.createElement('option'); opt.value = m.v; opt.textContent = m.n;
-                recDueMonth.appendChild(opt);
-            });
+            if (recDueMonth) {
+                recDueMonth.innerHTML = '<option value="">due month</option>';
+                monthsArr.forEach(m => {
+                    const opt = document.createElement('option'); opt.value = m.v; opt.textContent = m.n;
+                    recDueMonth.appendChild(opt);
+                });
+            }
 
-            expDate.value = new Date().toISOString().split('T')[0];
+            if (expDate) expDate.value = new Date().toISOString().split('T')[0];
             await refreshDashboard();
         } catch (err) {
             console.error("Init failed", err);
         }
     })();
 
-    // --- PWA / Service Worker ---
+    // --- PWA / Service Worker Logic ---
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js').then(reg => {
             reg.onupdatefound = () => {
                 const installingWorker = reg.installing;
                 installingWorker.onstatechange = () => {
+                    // Show ribbon only when the new worker has actually finished installing
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
                         if (updateBar) updateBar.classList.remove('hidden');
                     }
                 };
             };
         });
+    }
+
+    // Explicitly handle the reload button in the ribbon
+    if (reloadAppBtn) {
+        reloadAppBtn.onclick = () => {
+            window.location.reload();
+        };
     }
 
     window.addEventListener('beforeinstallprompt', (e) => {
