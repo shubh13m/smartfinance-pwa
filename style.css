@@ -67,7 +67,7 @@ body {
 }
 
 .topbar h1 {
-  font-size: 1.6rem; /* Restored larger size */
+  font-size: 1.6rem; 
   margin: 0;
   font-weight: bold;
   color: var(--text);
@@ -113,7 +113,7 @@ body {
   font-size: 15px; 
 }
 
-/* The "Grey Row" effect for Totals from your old style */
+/* The "Grey Row" effect for Totals */
 .dashboard-summary .row.total {
   font-weight: bold;
   font-size: 16px;
@@ -124,7 +124,7 @@ body {
 .dashboard-summary .row.income { color: var(--primary); }
 .dashboard-summary .row.expense { color: var(--danger); }
 
-/* The "Green Box" effect for Saved from your old style */
+/* The "Green Box" effect for Saved */
 .dashboard-summary .row.saved {
   font-weight: bold;
   color: var(--success); 
@@ -144,8 +144,28 @@ body {
 }
 
 /* =========================================
-   5. NAVIGATION & TABS (Fixed Visibility)
+   5. NAVIGATION & TABS (Fixed Stacking)
    ========================================= */
+
+/* Ribbon now pushes content down instead of floating over it */
+#updateBar {
+  position: relative; /* CHANGED: was fixed */
+  margin-top: 56px;    /* Start right below the header */
+  z-index: 1001;
+  background: var(--primary);
+  color: white;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* When updateBar is visible, we don't want double margin on the container */
+#updateBar:not(.hidden) + .container {
+  margin-top: 0 !important;
+}
+
 .month-selector-row {
   display: flex !important;
   flex-direction: row !important;
@@ -154,31 +174,25 @@ body {
   align-items: center !important;
   gap: 15px;
   width: 100%;
-  padding: 16px 0 !important;
+  padding: 12px 0 !important; /* Slightly reduced padding for global look */
   background-color: var(--card-bg) !important;
-  /* FIX: Ensure height and layer priority */
-  min-height: 60px;
+  margin-bottom: 8px; /* Space between selector and tabs */
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   position: relative;
   z-index: 5;
 }
 
-/* Update your existing .current-month-label */
 .current-month-label {
   font-weight: bold;
   font-size: 1.2rem;
   color: var(--primary) !important;
-  min-width: 160px; /* Slightly wider for longer months like September */
-  min-height: 1.5em; /* FIX: Prevents layout collapse when empty */
+  min-width: 160px;
   text-align: center;
-  display: inline-flex !important; /* Better centering than inline-block */
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
   visibility: visible !important;
-}
-
-/* Add this to prevent the FAB from hiding the last list item */
-.mdl-list {
-  padding-bottom: 80px !important; 
 }
 
 .mdl-tabs__tab-bar {
@@ -187,6 +201,11 @@ body {
   z-index: 999;
   background: var(--card-bg);
   border-bottom: 2px solid var(--bg);
+}
+
+/* If the Update Bar is visible, push the sticky tabs down */
+#updateBar:not(.hidden) ~ .container .mdl-tabs__tab-bar {
+    top: 0; /* Adjusts behavior within the container flow */
 }
 
 .mdl-tabs__tab.is-active {
@@ -209,7 +228,6 @@ body {
   background-color: var(--primary) !important;
 }
 
-/* Prevent Icon buttons from being forced to 100% width on mobile */
 .month-selector-row .mdl-button--icon {
   min-width: 40px !important;
   width: 40px !important;
@@ -217,7 +235,6 @@ body {
   display: flex !important;
   align-items: center;
   justify-content: center;
-  /* FIX: Ensure icon color isn't lost */
   color: var(--primary) !important;
 }
 
@@ -229,25 +246,15 @@ body {
 .mdl-button--accent { background-color: var(--danger) !important; }
 .hidden { display: none !important; }
 
-#updateBar {
-  position: fixed;
-  top: 56px;
-  left: 0;
-  right: 0;
-  z-index: 1001;
-  background: var(--primary);
-  color: white;
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Add this to prevent the FAB from hiding the last list item */
+.mdl-list {
+  padding-bottom: 80px !important; 
 }
 
 /* =========================================
    7. MOBILE RESPONSIVENESS (Fixed Conflicts)
    ========================================= */
 @media screen and (max-width: 600px) {
-  /* Only wrap rows that are NOT the month selector */
   .row:not(.month-selector-row) { flex-wrap: wrap; }
   
   .input-col { min-width: 100%; }
@@ -259,13 +266,11 @@ body {
       align-items: stretch;
   }
   
-  /* Stack standard raised buttons, but leave icons alone */
   .mdl-button--raised {
     width: 100%;
     margin-top: 5px;
   }
 
-  /* Ensure navigation buttons stay small and circular */
   .month-selector-row .mdl-button {
     width: 40px !important;
     min-width: 40px !important;
