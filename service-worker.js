@@ -11,8 +11,9 @@ const ASSETS = [
     'manifest.json',
     'icon-192.png',
     'icon-512.png',
-    'https://code.getmdl.io/1.3.0/material.indigo-pink.min.css',
-    'https://code.getmdl.io/1.3.0/material.min.js'
+    'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css',
+    'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.min.js',
+    'https://fonts.googleapis.com/icon?family=Material+Icons'
 ];
 
 // --- INSTALL: Opens the new cache and adds all assets ---
