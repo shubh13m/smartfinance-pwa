@@ -230,3 +230,35 @@ body {
     margin-top: 5px;
   }
 }
+
+/* Specific Fix for Month Navigation */
+.month-selector-row {
+    display: flex !important;
+    flex-direction: row !important; /* Prevent stacking on mobile */
+    flex-wrap: nowrap !important;   /* Keep arrows and text on one line */
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 15px;
+    width: 100%;
+    padding: 16px 0 !important;
+}
+
+.month-selector-row .mdl-button--icon {
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+}
+
+.current-month-label {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: var(--primary);
+    min-width: 160px; /* Prevents layout jump when month name length changes */
+    text-align: center;
+}
+
+/* Ensure icons are visible against white background */
+.month-selector-row .material-icons {
+    color: var(--text);
+    display: block;
+}
