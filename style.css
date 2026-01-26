@@ -162,16 +162,23 @@ body {
   z-index: 5;
 }
 
+/* Update your existing .current-month-label */
 .current-month-label {
   font-weight: bold;
   font-size: 1.2rem;
   color: var(--primary) !important;
-  min-width: 140px; 
+  min-width: 160px; /* Slightly wider for longer months like September */
+  min-height: 1.5em; /* FIX: Prevents layout collapse when empty */
   text-align: center;
-  /* FIX: Ensure text is visible and block-level */
-  display: inline-block !important;
+  display: inline-flex !important; /* Better centering than inline-block */
+  align-items: center;
+  justify-content: center;
   visibility: visible !important;
-  opacity: 1 !important;
+}
+
+/* Add this to prevent the FAB from hiding the last list item */
+.mdl-list {
+  padding-bottom: 80px !important; 
 }
 
 .mdl-tabs__tab-bar {
