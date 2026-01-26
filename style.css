@@ -144,7 +144,7 @@ body {
 }
 
 /* =========================================
-   5. NAVIGATION & TABS (Cleaned Up)
+   5. NAVIGATION & TABS (Fixed Visibility)
    ========================================= */
 .month-selector-row {
   display: flex !important;
@@ -155,15 +155,23 @@ body {
   gap: 15px;
   width: 100%;
   padding: 16px 0 !important;
-  background-color: var(--card-bg);
+  background-color: var(--card-bg) !important;
+  /* FIX: Ensure height and layer priority */
+  min-height: 60px;
+  position: relative;
+  z-index: 5;
 }
 
 .current-month-label {
   font-weight: bold;
   font-size: 1.2rem;
-  color: var(--primary);
+  color: var(--primary) !important;
   min-width: 140px; 
   text-align: center;
+  /* FIX: Ensure text is visible and block-level */
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .mdl-tabs__tab-bar {
@@ -202,10 +210,11 @@ body {
   display: flex !important;
   align-items: center;
   justify-content: center;
+  /* FIX: Ensure icon color isn't lost */
+  color: var(--primary) !important;
 }
 
 .month-selector-row .material-icons {
-  color: var(--text);
   font-size: 24px;
 }
 
