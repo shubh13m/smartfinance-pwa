@@ -1,4 +1,4 @@
-// db.js - SmartFinanceDB Logic with Auto-Migration and Truth-Based Calculations
+// db.js - SmartFinanceDB Logic with Auto-Migration and Propagation Fixes
 const DB_NAME = "SmartFinanceDB_v1";
 const DB_STORE = "months";
 let db;
@@ -75,6 +75,39 @@ async function listMonths() {
   });
 }
 
+// FIX: Helper to find the "Last Known Truth" month
+async function findMostRecentData(targetMonthId) {
+    const allMonths = await listMonths();
+    // Sort descending to find the closest month that is older than target
+    const sorted = allMonths
+        .filter(m => m.id < targetMonthId)
+        .sort((a, b) => b.id.localeCompare(a.id));
+    return sorted[0] || null;
+}
+
+// FIX: Propagate changes to all existing future months
+async function propagateRecurringChange(startMonthId, updatedItem, action) {
+    const allMonths = await listMonths();
+    const futureMonths = allMonths.filter(m => m.id > startMonthId);
+    
+    for (const m of futureMonths) {
+        if (updatedItem.type === 'monthly') {
+            if (action === 'add') {
+                m.recurringMonthly.push(updatedItem);
+            } else if (action === 'delete') {
+                m.recurringMonthly = m.recurringMonthly.filter(i => i.ts !== updatedItem.ts);
+            }
+        } else {
+            if (action === 'add') {
+                m.recurringYearly.push(updatedItem);
+            } else if (action === 'delete') {
+                m.recurringYearly = m.recurringYearly.filter(i => i.ts !== updatedItem.ts);
+            }
+        }
+        await saveMonth(m);
+    }
+}
+
 async function clearAllData() {
   const database = await openDB();
   return new Promise((res, rej) => {
@@ -105,16 +138,12 @@ async function importFullBackup(jsonData) {
   }
 }
 
-// FIX: Improved inheritance logic to ensure all data clones to next months
+// FIX: Improved inheritance logic with deep search
 async function ensureMonth(monthId) {
   let m = await getMonth(monthId);
   if (!m) {
-    let [y, month] = monthId.split('-').map(Number);
-    let prevMonthNum = month - 1;
-    let prevYear = y;
-    if (prevMonthNum === 0) { prevMonthNum = 12; prevYear -= 1; }
-    const prevMonthId = `${prevYear}-${String(prevMonthNum).padStart(2, "0")}`;
-    const prevData = await getMonth(prevMonthId);
+    // Look for the most recent data instead of just current-1
+    const prevData = await findMostRecentData(monthId);
 
     m = {
       id: monthId,
@@ -122,7 +151,7 @@ async function ensureMonth(monthId) {
       daily: [],
       recurringMonthly: prevData ? JSON.parse(JSON.stringify(prevData.recurringMonthly || [])) : [],
       recurringYearly: prevData ? JSON.parse(JSON.stringify(prevData.recurringYearly || [])) : [],
-      investments: prevData ? { ...prevData.investments } : { sip: 0, stocks: 0, other: 0 }
+      investments: prevData ? JSON.parse(JSON.stringify(prevData.investments || { sip: 0, stocks: 0, other: 0 })) : { sip: 0, stocks: 0, other: 0 }
     };
     await saveMonth(m);
   } else {
@@ -156,8 +185,6 @@ async function getFinancialSummary(monthId) {
   return { totalIncome, totalEffectiveRecurring, totalDaily, expenseGoal, trueSurplus, totalPrepayPower };
 }
 
-/** * UI Helper: Re-triggers MDL to style dynamic elements
- */
 function upgradeMDL() {
   if (window.componentHandler) {
     window.componentHandler.upgradeDom();
