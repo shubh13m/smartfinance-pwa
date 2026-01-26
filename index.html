@@ -30,6 +30,13 @@
   </div>
 
   <main class="mdl-layout__content container">
+    
+    <div class="row month-selector-row">
+      <button class="mdl-button mdl-js-button mdl-button--icon" id="prevMonthBtn"><i class="material-icons">chevron_left</i></button>
+      <span id="currentMonthDisplay" class="current-month-label"></span> 
+      <button class="mdl-button mdl-js-button mdl-button--icon" id="nextMonthBtn"><i class="material-icons">chevron_right</i></button>
+    </div>
+
     <div class="mdl-tabs mdl-js-tabs mdl-js-ripple-effect">
       
       <div class="mdl-tabs__tab-bar">
@@ -43,14 +50,6 @@
         <section id="dashboardSection" class="mdl-card mdl-shadow--2dp">
           <div class="mdl-card__supporting-text dashboard-summary">
             
-            <div class="row month-selector-row">
-              <button class="mdl-button mdl-js-button mdl-button--icon" id="prevMonthBtn"><i class="material-icons">chevron_left</i></button>
-              <span id="currentMonthDisplay" class="current-month-label"></span> 
-              <button class="mdl-button mdl-js-button mdl-button--icon" id="nextMonthBtn"><i class="material-icons">chevron_right</i></button>
-            </div>
-            
-            <hr style="opacity: 0.1; margin: 0;">
-
             <div class="row income"><label>Base Income:</label><span id="baseIncomeDisplay">₹0</span></div>
             <div class="row income"><label>Extra Income:</label><span id="extraIncomeDisplay">₹0</span></div>
             <div class="row total income"><label>TOTAL INCOME:</label><span id="totalIncomeDisplay">₹0</span></div>
