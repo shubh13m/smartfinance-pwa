@@ -1,5 +1,5 @@
 // --- CRITICAL CHANGE: INCREMENT THE CACHE VERSION ---
-const CACHE_NAME = 'smartfinance-cache-v22'; // Incremented for Phase 3
+const CACHE_NAME = 'smartfinance-cache-v23'; // Incremented for Phase 3
 // --------------------------------------------------
 
 const ASSETS = [
