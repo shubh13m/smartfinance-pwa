@@ -144,18 +144,26 @@ body {
 }
 
 /* =========================================
-   5. NAVIGATION & TABS
+   5. NAVIGATION & TABS (Cleaned Up)
    ========================================= */
 .month-selector-row {
-  justify-content: space-around;
-  padding: 12px 0; 
-  align-items: center;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important; 
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 15px;
+  width: 100%;
+  padding: 16px 0 !important;
   background-color: var(--card-bg);
 }
 
 .current-month-label {
   font-weight: bold;
-  font-size: 1.1em; 
+  font-size: 1.2rem;
+  color: var(--primary);
+  min-width: 140px; 
+  text-align: center;
 }
 
 .mdl-tabs__tab-bar {
@@ -186,14 +194,23 @@ body {
   background-color: var(--primary) !important;
 }
 
-.mdl-button--colored {
-  background: var(--primary) !important;
+/* Prevent Icon buttons from being forced to 100% width on mobile */
+.month-selector-row .mdl-button--icon {
+  min-width: 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
-.mdl-button--accent {
-  background-color: var(--danger) !important;
+.month-selector-row .material-icons {
+  color: var(--text);
+  font-size: 24px;
 }
 
+.mdl-button--colored { background: var(--primary) !important; }
+.mdl-button--accent { background-color: var(--danger) !important; }
 .hidden { display: none !important; }
 
 #updateBar {
@@ -211,13 +228,14 @@ body {
 }
 
 /* =========================================
-   7. MOBILE RESPONSIVENESS
+   7. MOBILE RESPONSIVENESS (Fixed Conflicts)
    ========================================= */
 @media screen and (max-width: 600px) {
-  .row { flex-wrap: wrap; }
+  /* Only wrap rows that are NOT the month selector */
+  .row:not(.month-selector-row) { flex-wrap: wrap; }
+  
   .input-col { min-width: 100%; }
   
-  /* Stacking inputs for better mobile feel as per old style */
   #incomeInputCard .row, 
   #addDailyExpenseSection .row,
   #addRecurringItemSection .row {
@@ -225,40 +243,15 @@ body {
       align-items: stretch;
   }
   
+  /* Stack standard raised buttons, but leave icons alone */
   .mdl-button--raised {
     width: 100%;
     margin-top: 5px;
   }
-}
 
-/* Specific Fix for Month Navigation */
-.month-selector-row {
-    display: flex !important;
-    flex-direction: row !important; /* Prevent stacking on mobile */
-    flex-wrap: nowrap !important;   /* Keep arrows and text on one line */
-    justify-content: center !important;
-    align-items: center !important;
-    gap: 15px;
-    width: 100%;
-    padding: 16px 0 !important;
-}
-
-.month-selector-row .mdl-button--icon {
-    min-width: 32px;
-    width: 32px;
-    height: 32px;
-}
-
-.current-month-label {
-    font-weight: bold;
-    font-size: 1.2rem;
-    color: var(--primary);
-    min-width: 160px; /* Prevents layout jump when month name length changes */
-    text-align: center;
-}
-
-/* Ensure icons are visible against white background */
-.month-selector-row .material-icons {
-    color: var(--text);
-    display: block;
+  /* Ensure navigation buttons stay small and circular */
+  .month-selector-row .mdl-button {
+    width: 40px !important;
+    min-width: 40px !important;
+  }
 }
