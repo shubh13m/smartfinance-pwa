@@ -323,8 +323,7 @@
 
     // --- PWA / Service Worker ---
     if ('serviceWorker' in navigator) {
-        // Updated to sw.js to match your previous code
-        navigator.serviceWorker.register('sw.js').then(reg => {
+        navigator.serviceWorker.register('service-worker.js').then(reg => {
             reg.onupdatefound = () => {
                 const installingWorker = reg.installing;
                 installingWorker.onstatechange = () => {
