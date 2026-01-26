@@ -253,12 +253,26 @@
 
     // --- Events ---
     async function deleteRecurringItem(e) {
-        if (!confirm('Delete?')) return;
+        if (!confirm('Delete this and all future occurrences?')) return;
         const { id, type } = e.currentTarget.dataset;
         const m = await ensureMonth(viewingMonth);
-        if (type === 'monthly') m.recurringMonthly = m.recurringMonthly.filter(i => i.ts != id);
-        else m.recurringYearly = m.recurringYearly.filter(i => i.ts != id);
+        
+        let deletedItem;
+        if (type === 'monthly') {
+            deletedItem = m.recurringMonthly.find(i => i.ts == id);
+            m.recurringMonthly = m.recurringMonthly.filter(i => i.ts != id);
+        } else {
+            deletedItem = m.recurringYearly.find(i => i.ts == id);
+            m.recurringYearly = m.recurringYearly.filter(i => i.ts != id);
+        }
+        
         await saveMonth(m);
+        
+        // Ripple the deletion to all future months
+        if (deletedItem) {
+            await propagateRecurringChange(viewingMonth, { ts: Number(id), type }, 'delete');
+        }
+        
         refreshDashboard();
     }
 
@@ -303,6 +317,37 @@
             m.daily.push({ amount, category: expCategory.value, note: expNote.value, date: dateStr, ts: Date.now() });
             await saveMonth(m);
             expAmount.value = ''; expNote.value = '';
+            refreshDashboard();
+        };
+    }
+
+    if (addRecurringItemBtn) {
+        addRecurringItemBtn.onclick = async () => {
+            const name = recName.value;
+            const amount = Number(recAmount.value);
+            if (!name || amount <= 0) return;
+
+            const isYearly = recFrequencyYearly.checked;
+            const newItem = {
+                name,
+                amount,
+                ts: Date.now(),
+                type: isYearly ? 'yearly' : 'monthly'
+            };
+
+            if (isYearly) newItem.month = Number(recDueMonth.value);
+
+            const m = await ensureMonth(viewingMonth);
+            if (isYearly) m.recurringYearly.push(newItem);
+            else m.recurringMonthly.push(newItem);
+
+            await saveMonth(m);
+            
+            // Ripple the new item to all existing future months
+            await propagateRecurringChange(viewingMonth, newItem, 'add');
+
+            // Clear inputs
+            recName.value = ''; recAmount.value = '';
             refreshDashboard();
         };
     }
