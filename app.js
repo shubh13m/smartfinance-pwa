@@ -56,8 +56,26 @@
   let isNavigating = false;
 
   function getReadableMonthName(id) {
-    const [y, m] = id.split('-');
-    return new Date(y, m - 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+      // 1. Check if id is actually a valid string
+      if (!id || typeof id !== 'string') {
+          return "Current Month";
+      }
+  
+      // 2. Check if it contains the expected hyphen (YYYY-MM)
+      if (!id.includes('-')) {
+          return id; 
+      }
+  
+      try {
+          const [year, month] = id.split('-');
+          const date = new Date(year, month - 1);
+          
+          // Return formatted name like "January 2026"
+          return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+      } catch (error) {
+          console.error("Error parsing month ID:", error);
+          return id;
+      }
   }
 
   function setMonthLabel(id){
