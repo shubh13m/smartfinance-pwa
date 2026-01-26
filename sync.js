@@ -21,15 +21,16 @@ function initSync() {
 }
 
 // Helper to find if the backup file already exists to prevent duplicates
-async function findExistingFileId() {
+// Modified to return both ID and Size for the data loss check
+async function findExistingFileMetadata() {
   const response = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='smartfinance_backup.json'+and+'appDataFolder'+in+parents&spaces=appDataFolder`,
+    `https://www.googleapis.com/drive/v3/files?q=name='smartfinance_backup.json'+and+'appDataFolder'+in+parents&spaces=appDataFolder&fields=files(id, size)`,
     {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     }
   );
   const data = await response.json();
-  return (data.files && data.files.length > 0) ? data.files[0].id : null;
+  return (data.files && data.files.length > 0) ? data.files[0] : null;
 }
 
 async function uploadToDrive() {
@@ -37,13 +38,27 @@ async function uploadToDrive() {
   try {
     const content = await exportFullBackup();
     const fileContent = new Blob([content], { type: 'application/json' });
+    const localSize = fileContent.size;
     
-    const fileId = await findExistingFileId();
+    const existingFile = await findExistingFileMetadata();
     let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
     let method = 'POST';
+    let fileId = null;
 
-    // If file exists, update it instead of creating a new one
-    if (fileId) {
+    // CASE 4: Silent Data Loss Check
+    if (existingFile) {
+      fileId = existingFile.id;
+      const cloudSize = parseInt(existingFile.size || 0);
+
+      // If local data is >50% smaller than cloud data, trigger a safety warning
+      if (cloudSize > 0 && localSize < (cloudSize * 0.5)) {
+        const warningMsg = `⚠️ Warning: Your local data is significantly smaller than your Drive backup (${Math.round(localSize/1024)}KB vs ${Math.round(cloudSize/1024)}KB).\n\nAre you sure you want to overwrite the cloud backup? This might lead to data loss.`;
+        if (!confirm(warningMsg)) {
+          setSyncLoading(false);
+          return;
+        }
+      }
+
       url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
       method = 'PATCH';
     }
@@ -64,6 +79,8 @@ async function uploadToDrive() {
     });
     
     if (response.ok) {
+      // Update local timestamp upon successful cloud sync
+      localStorage.setItem('sf_last_saved', Date.now());
       alert("✅ Sync Complete! Your data is updated in Google Drive.");
     } else {
       const errData = await response.json();

@@ -66,6 +66,10 @@
     let isNavigating = false;
 
     // --- Helpers ---
+    function updateLocalTimestamp() {
+        localStorage.setItem('sf_last_saved', Date.now());
+    }
+
     function upgradeMDL() {
         if (typeof componentHandler !== 'undefined') {
             componentHandler.upgradeDom();
@@ -267,6 +271,7 @@
         }
         
         await saveMonth(m);
+        updateLocalTimestamp(); // Sync Trigger Fix
         
         // Ripple the deletion to all future months
         if (deletedItem) {
@@ -282,6 +287,7 @@
         const m = await ensureMonth(viewingMonth);
         m.daily = m.daily.filter(i => i.ts != id);
         await saveMonth(m);
+        updateLocalTimestamp(); // Sync Trigger Fix
         refreshDashboard();
     }
 
@@ -304,6 +310,7 @@
             const m = await ensureMonth(viewingMonth);
             m.income.base = Number(incomeInput.value);
             await saveMonth(m);
+            updateLocalTimestamp(); // Sync Trigger Fix
             refreshDashboard();
         };
     }
@@ -316,6 +323,7 @@
             const m = await ensureMonth(dateStr.slice(0, 7));
             m.daily.push({ amount, category: expCategory.value, note: expNote.value, date: dateStr, ts: Date.now() });
             await saveMonth(m);
+            updateLocalTimestamp(); // Sync Trigger Fix
             expAmount.value = ''; expNote.value = '';
             refreshDashboard();
         };
@@ -342,6 +350,7 @@
             else m.recurringMonthly.push(newItem);
 
             await saveMonth(m);
+            updateLocalTimestamp(); // Sync Trigger Fix
             
             // Ripple the new item to all existing future months
             await propagateRecurringChange(viewingMonth, newItem, 'add');
@@ -381,7 +390,6 @@
             reg.onupdatefound = () => {
                 const installingWorker = reg.installing;
                 installingWorker.onstatechange = () => {
-                    // Show ribbon only when the new worker has actually finished installing
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
                         if (updateBar) updateBar.classList.remove('hidden');
                     }
@@ -390,7 +398,6 @@
         });
     }
 
-    // Explicitly handle the reload button in the ribbon
     if (reloadAppBtn) {
         reloadAppBtn.onclick = () => {
             window.location.reload();

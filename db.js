@@ -52,7 +52,11 @@ async function saveMonth(monthObj) {
     const tx = database.transaction(DB_STORE, 'readwrite');
     const store = tx.objectStore(DB_STORE);
     const req = store.put(monthObj);
-    req.onsuccess = () => res(req.result);
+    req.onsuccess = () => {
+      // Update the global timestamp for conflict resolution
+      localStorage.setItem('sf_last_saved', Date.now());
+      res(req.result);
+    };
     req.onerror = () => rej(req.error);
   });
 }
@@ -78,7 +82,6 @@ async function listMonths() {
 // FIX: Helper to find the "Last Known Truth" month
 async function findMostRecentData(targetMonthId) {
     const allMonths = await listMonths();
-    // Sort descending to find the closest month that is older than target
     const sorted = allMonths
         .filter(m => m.id < targetMonthId)
         .sort((a, b) => b.id.localeCompare(a.id));
@@ -124,14 +127,36 @@ async function exportFullBackup() {
   return JSON.stringify(allData);
 }
 
+// MODIFIED: Clear-then-Inject logic to handle Overwrite from Cloud correctly
 async function importFullBackup(jsonData) {
   try {
-    const data = JSON.parse(jsonData);
-    if (!Array.isArray(data)) return false;
-    for (const month of data) {
-      await saveMonth(month);
-    }
-    return true;
+    const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+    const arrayToImport = Array.isArray(data) ? data : (data.data || []);
+    
+    if (!Array.isArray(arrayToImport)) return false;
+
+    const database = await openDB();
+    
+    return new Promise((resolve, reject) => {
+        // Use a single transaction for atomicity (all or nothing)
+        const tx = database.transaction(DB_STORE, 'readwrite');
+        const store = tx.objectStore(DB_STORE);
+        
+        // 1. Clear existing local data
+        store.clear().onsuccess = () => {
+            // 2. Inject cloud data
+            for (const month of arrayToImport) {
+                store.put(month);
+            }
+        };
+
+        tx.oncomplete = () => {
+            // Update local timestamp so sync knows we are current
+            localStorage.setItem('sf_last_saved', Date.now());
+            resolve(true);
+        };
+        tx.onerror = () => reject(tx.error);
+    });
   } catch (e) {
     console.error("Import failed", e);
     return false;
@@ -142,7 +167,6 @@ async function importFullBackup(jsonData) {
 async function ensureMonth(monthId) {
   let m = await getMonth(monthId);
   if (!m) {
-    // Look for the most recent data instead of just current-1
     const prevData = await findMostRecentData(monthId);
 
     m = {
