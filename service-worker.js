@@ -1,5 +1,5 @@
 // --- VERSION: v1.1.0.0 ---
-const CACHE_NAME = 'smartfinance-cache-v30'; 
+const CACHE_NAME = 'smartfinance-cache-v31'; 
 
 const ASSETS = [
     './',
