@@ -45,6 +45,10 @@ self.addEventListener('activate', evt => {
 
 // --- FETCH: PHASE 3 - NETWORK FIRST WITH TIMEOUT STRATEGY ---
 self.addEventListener('fetch', evt => {
+  // --- FIX: IGNORE NON-HTTP(S) REQUESTS (Chrome Extensions, etc.) ---
+  if (!(evt.request.url.indexOf('http') === 0)) return;
+  // -----------------------------------------------------------------
+
   // We only cache GET requests
   if (evt.request.method !== 'GET') return;
 
