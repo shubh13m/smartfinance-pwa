@@ -55,26 +55,27 @@
   let viewingMonth = new Date().toLocaleDateString('en-CA').slice(0,7);
   let isNavigating = false;
 
+  // MDL Helper to fix visual bugs on dynamic elements
+  function upgradeMDL() {
+    if (typeof componentHandler !== 'undefined') {
+      componentHandler.upgradeDom();
+    }
+  }
+
   function getReadableMonthName(id) {
-      // 1. Check if id is actually a valid string
-      if (!id || typeof id !== 'string') {
-          return "Current Month";
+      // Ensure id is a string. If it's an object (like {id: "2026-01"}), extract the string.
+      const monthId = (typeof id === 'object' && id !== null) ? id.id : id;
+
+      if (!monthId || typeof monthId !== 'string' || !monthId.includes('-')) {
+          return monthId || "Unknown Month";
       }
-  
-      // 2. Check if it contains the expected hyphen (YYYY-MM)
-      if (!id.includes('-')) {
-          return id; 
-      }
-  
+
       try {
-          const [year, month] = id.split('-');
+          const [year, month] = monthId.split('-');
           const date = new Date(year, month - 1);
-          
-          // Return formatted name like "January 2026"
           return date.toLocaleString('default', { month: 'long', year: 'numeric' });
       } catch (error) {
-          console.error("Error parsing month ID:", error);
-          return id;
+          return monthId;
       }
   }
 
@@ -166,6 +167,7 @@
     monthly.forEach(item => recurringItemList.appendChild(createItem(item, 'monthly')));
     yearly.forEach(item => recurringItemList.appendChild(createItem(item, 'yearly')));
     document.querySelectorAll('.delete-rec').forEach(btn => btn.addEventListener('click', deleteRecurringItem));
+    upgradeMDL();
   }
 
   async function renderExpenseList(monthId){
@@ -190,6 +192,7 @@
         currentMonthExpenseList.appendChild(li);
     });
     document.querySelectorAll('.delete-daily').forEach(btn => btn.addEventListener('click', deleteDailyExpense));
+    upgradeMDL();
   }
 
   async function refreshDashboard(){
@@ -255,15 +258,16 @@
     await renderRecurringList();
     await populateCategoryDatalist();
     await renderHistory();
-    
-    // FIX: Crucial for applying MDL styles to new list items and buttons
-    if (typeof upgradeMDL === "function") upgradeMDL();
+    upgradeMDL();
   }
   
   async function renderHistory(){
-    const monthIds = await listMonths();
+    const historyData = await listMonths(); // This returns objects, not just IDs
     monthsList.innerHTML = '';
-    monthIds.sort().reverse().forEach(id => {
+    
+    // Sort by ID string descending
+    historyData.sort((a, b) => b.id.localeCompare(a.id)).forEach(monthObj => {
+      const id = monthObj.id;
       const btn = document.createElement('button');
       btn.className = 'mdl-button mdl-js-button mdl-button--raised';
       btn.textContent = getReadableMonthName(id); 
@@ -274,18 +278,19 @@
         const incomeSum = Number(m.income.base || 0) + sumAmounts(m.income.extras);
         const recurringSum = sumAmounts(m.recurringMonthly);
         monthDetail.innerHTML = `
-          <div style="background:#f9f9f9; padding:15px; border-radius:8px;">
+          <div style="background:#f9f9f9; padding:15px; border-radius:8px; border: 1px solid #eee;">
             <h4 style="margin-top:0;">${getReadableMonthName(id)}</h4>
             <p><strong>Total Income:</strong> ${fmt(incomeSum)}</p>
             <p><strong>Daily Expenses:</strong> ${fmt(dailySum)}</p>
             <p><strong>Net Savings:</strong> ${fmt(incomeSum - (dailySum + recurringSum))}</p>
-            <p style="font-size:0.8em; color:#666;">(View full details by switching to this month using Dashboard arrows)</p>
+            <p style="font-size:0.8em; color:#666;">(Switch months using Dashboard arrows to see full breakdown)</p>
           </div>
         `;
-        if (typeof upgradeMDL === "function") upgradeMDL();
+        upgradeMDL();
       });
       monthsList.appendChild(btn);
     });
+    upgradeMDL();
   }
   
   async function changeMonth(delta) {
@@ -390,6 +395,7 @@
   })();
 
   if ('serviceWorker' in navigator) {
+    // Fixed registration to match your file name
     navigator.serviceWorker.register('service-worker.js').then(reg => {
         reg.addEventListener('updatefound', () => {
             const nw = reg.installing;
@@ -398,12 +404,21 @@
             });
         });
     });
+
     window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault(); deferredPrompt = e;
-      installBtn.classList.remove('hidden');
+      e.preventDefault(); 
+      deferredPrompt = e;
+      if (installBtn) installBtn.classList.remove('hidden');
     });
-    installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; installBtn.classList.add('hidden'); }
-    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) { 
+          deferredPrompt.prompt(); 
+          deferredPrompt = null; 
+          installBtn.classList.add('hidden'); 
+        }
+      });
+    }
   }
 })();
