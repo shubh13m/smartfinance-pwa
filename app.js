@@ -1,4 +1,9 @@
 (async function(){
+  // --- Wait for DOM and MDL to be ready ---
+  if (document.readyState === 'loading') {
+    await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+  }
+
   const DEFAULT_CATEGORIES = ['Housing', 'Food & Dining', 'Transportation', 'Utilities', 'Personal Care', 'Entertainment', 'Health', 'Debt & Loans', 'Savings & Invest', 'Miscellaneous'];
   await openDB();
 
@@ -63,13 +68,10 @@
   }
 
   function getReadableMonthName(id) {
-      // Ensure id is a string. If it's an object (like {id: "2026-01"}), extract the string.
       const monthId = (typeof id === 'object' && id !== null) ? id.id : id;
-
       if (!monthId || typeof monthId !== 'string' || !monthId.includes('-')) {
           return monthId || "Unknown Month";
       }
-
       try {
           const [year, month] = monthId.split('-');
           const date = new Date(year, month - 1);
@@ -80,7 +82,9 @@
   }
 
   function setMonthLabel(id){
-    currentMonthDisplay.textContent = getReadableMonthName(id);
+    if (currentMonthDisplay) {
+      currentMonthDisplay.textContent = getReadableMonthName(id);
+    }
   }
   
   function fmt(val){ return `₹ ${Number(val || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
@@ -262,10 +266,9 @@
   }
   
   async function renderHistory(){
-    const historyData = await listMonths(); // This returns objects, not just IDs
+    const historyData = await listMonths();
     monthsList.innerHTML = '';
     
-    // Sort by ID string descending
     historyData.sort((a, b) => b.id.localeCompare(a.id)).forEach(monthObj => {
       const id = monthObj.id;
       const btn = document.createElement('button');
@@ -387,15 +390,20 @@
   
   expDate.value = new Date().toLocaleDateString('en-CA');
   
-  // Initial Load
+  // Initial Load with MDL buffer
   (async function init() {
     await ensureMonth(viewingMonth);
     populateMonthSelects();
     await refreshDashboard();
+    
+    // Final check for MDL and visibility
+    setTimeout(() => {
+      if(currentMonthDisplay) currentMonthDisplay.style.visibility = 'visible';
+      upgradeMDL();
+    }, 100);
   })();
 
   if ('serviceWorker' in navigator) {
-    // Fixed registration to match your file name
     navigator.serviceWorker.register('service-worker.js').then(reg => {
         reg.addEventListener('updatefound', () => {
             const nw = reg.installing;
