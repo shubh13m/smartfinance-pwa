@@ -1,0 +1,21 @@
+{
+  "name": "smartfinance-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node scripts/serve.mjs",
+    "test": "node --test \"tests/unit/*.test.js\" \"tests/data/*.test.js\" \"tests/ui/*.test.js\"",
+    "test:unit": "node --test \"tests/unit/*.test.js\"",
+    "test:data": "node --test \"tests/data/*.test.js\"",
+    "test:ui": "node --test \"tests/ui/*.test.js\"",
+    "test:e2e": "playwright test",
+    "test:all": "npm test && npm run test:e2e",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=\"src/**/*.js\" --test-coverage-lines=90 \"tests/unit/*.test.js\" \"tests/data/*.test.js\" \"tests/ui/*.test.js\"",
+    "test:changed": "node scripts/test-changed.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "fake-indexeddb": "^6.2.8",
+    "jsdom": "^29.1.1"
+  }
+}

@@ -1,0 +1,87 @@
+/* Design tokens. Every colour, radius and shadow in the app comes from here. */
+:root {
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --bg: #f5f6fb;
+  --surface: #ffffff;
+  --surface-2: #f0f2f9;
+  --surface-3: #e7eaf4;
+  --border: #e3e6ef;
+  --border-strong: #cfd4e2;
+  --text: #0f1729;
+  --text-2: #4a5268;
+  --text-3: #5b6479;
+
+  --brand: #4f46e5;
+  --brand-2: #7c3aed;
+  --brand-soft: #eceeff;
+  --on-brand: #ffffff;
+
+  --good: #047857;
+  --good-soft: #e3f6ee;
+  --bad: #c81e1e;
+  --bad-soft: #fdeaea;
+  --warn: #a85a05;
+  --warn-soft: #fff1dc;
+
+  --needs: #4f46e5;
+  --wants: #db2777;
+  --savings: #059669;
+
+  --avatar-1: #4f46e5;
+  --avatar-2: #db2777;
+  --avatar-3: #0d9488;
+  --avatar-4: #d97706;
+  --avatar-5: #7c3aed;
+  --avatar-6: #0284c7;
+
+  --radius-s: 8px;
+  --radius: 14px;
+  --radius-l: 22px;
+  --shadow-1: 0 1px 2px rgba(15, 23, 41, .05), 0 1px 3px rgba(15, 23, 41, .06);
+  --shadow-2: 0 12px 32px rgba(15, 23, 41, .14);
+  --hero: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --overlay: rgba(10, 14, 28, .5);
+
+  --sidebar-w: 256px;
+  --tabs-h: 64px;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg: #0b1020;
+  --surface: #131a2e;
+  --surface-2: #1a2340;
+  --surface-3: #232d4f;
+  --border: #243055;
+  --border-strong: #34426e;
+  --text: #eef1fb;
+  --text-2: #b4bcd6;
+  --text-3: #8791b0;
+
+  --brand: #8b85ff;
+  --brand-2: #a78bfa;
+  --brand-soft: #1f2650;
+  --on-brand: #0b1020;
+
+  --good: #34d399;
+  --good-soft: #0f2d28;
+  --bad: #f87171;
+  --bad-soft: #351a24;
+  --warn: #fbbf24;
+  --warn-soft: #33260f;
+
+  --needs: #8b85ff;
+  --wants: #f472b6;
+  --savings: #34d399;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .35);
+  --shadow-2: 0 14px 40px rgba(0, 0, 0, .55);
+  --hero: linear-gradient(135deg, #3730a3 0%, #6d28d9 100%);
+  --overlay: rgba(0, 0, 0, .65);
+
+  color-scheme: dark;
+}
