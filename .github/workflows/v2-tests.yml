@@ -1,0 +1,52 @@
+name: v2 tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['v2/**', '.github/workflows/v2-tests.yml']
+  pull_request:
+    paths: ['v2/**', '.github/workflows/v2-tests.yml']
+
+concurrency:
+  group: v2-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: v2
+
+jobs:
+  logic:
+    name: Unit, data and UI tests (with coverage gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: v2/package-lock.json
+      - run: npm ci
+      - run: npm run test:coverage
+
+  browser:
+    name: Browser tests (desktop + phone viewport)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: v2/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            v2/playwright-report/
+            v2/test-results/
+          retention-days: 7
