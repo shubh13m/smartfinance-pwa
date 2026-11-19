@@ -6,6 +6,9 @@
   <meta name="theme-color" content="#4f46e5" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data:; style-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <title>SmartFinance — Household</title>
+  <!-- Start the connections early; the app talks to both on first launch. -->
+  <link rel="preconnect" href="https://dqqmcijfzghorpjmytpa.supabase.co" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <script src="src/theme-boot.js"></script>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="../icon-192.png" />

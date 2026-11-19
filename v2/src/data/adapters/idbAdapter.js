@@ -55,7 +55,7 @@ export function createIdbAdapter() {
     async remove(table, id) {
       const existing = await done((await store(table, 'readonly')).get(id));
       await done((await store(table, 'readwrite')).delete(id));
-      if (existing) listeners.emit(table, existing);
+      if (existing) listeners.emit(table, existing, 'delete');
     },
     subscribe: (table, householdId, cb) => listeners.add(table, householdId, cb),
   };

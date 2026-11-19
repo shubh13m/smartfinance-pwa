@@ -31,7 +31,7 @@ export function createMemoryAdapter() {
     async remove(table, id) {
       const existing = rows(table).get(id);
       rows(table).delete(id);
-      if (existing) listeners.emit(table, existing);
+      if (existing) listeners.emit(table, existing, 'delete');
     },
     subscribe: (table, householdId, cb) => listeners.add(table, householdId, cb),
   };

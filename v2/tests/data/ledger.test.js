@@ -187,3 +187,90 @@ test('importRows with nothing is a no-op', async () => {
   const { me } = pair();
   assert.equal(await me.importRows({}), 0);
 });
+
+/* ---------- announcements (what makes the screen update instantly) ---------- */
+
+test('writes are announced before the server answers, then confirmed with the server\'s row', async () => {
+  const { me, adapter } = pair();
+  const seen = [];
+  me.onChange((change) => seen.push(change));
+  const realInsert = adapter.insert;
+  adapter.insert = async (...args) => {
+    assert.deepEqual(seen.map((c) => c.type), ['upsert'], 'the guess is already out before the write starts');
+    return realInsert(...args);
+  };
+  const saved = await me.addTransaction(expense);
+  assert.deepEqual(seen.map((c) => [c.table, c.type]), [['transactions', 'upsert'], ['transactions', 'confirm']]);
+  assert.equal(seen[0].row.id, saved.id, 'the id is chosen up front, so the guess and the real row are the same row');
+  assert.equal(seen[0].row.created_by, 'me');
+  assert.equal(seen[1].row.id, saved.id);
+});
+
+test('an edit is announced as a patch, then confirmed; a delete is announced first', async () => {
+  const { me } = pair();
+  const row = await me.addTransaction(expense);
+  const seen = [];
+  me.onChange((change) => seen.push(change));
+  await me.updateTransaction(row.id, { ...expense, amount_paise: 999 });
+  await me.deleteTransaction(row.id);
+  assert.deepEqual(seen.map((c) => c.type), ['patch', 'confirm', 'delete']);
+  assert.equal(seen[0].row.id, row.id);
+  assert.equal(seen[0].row.amount_paise, 999);
+  assert.deepEqual(seen[2].row, { id: row.id });
+});
+
+test('a rejected write is announced but throws, so the caller can undo its guess', async () => {
+  const { me, adapter } = pair();
+  adapter.insert = async () => { throw new Error('boom'); };
+  const seen = [];
+  me.onChange((change) => seen.push(change.type));
+  await assert.rejects(() => me.addTransaction(expense), /boom/);
+  assert.deepEqual(seen, ['upsert']);
+});
+
+test('invalid input is rejected before anything is announced', async () => {
+  const { me } = pair();
+  const seen = [];
+  me.onChange((change) => seen.push(change));
+  await assert.rejects(() => me.addTransaction({ ...expense, amount_paise: 0 }), ValidationError);
+  assert.deepEqual(seen, []);
+});
+
+test('deleting a goal announces it first and removes its contributions', async () => {
+  const { me } = pair();
+  const goal = await me.addGoal({ name: 'Trip', target_paise: 500000, deadline: null });
+  await me.addContribution({ goal_id: goal.id, amount_paise: 1000, contributed_on: '2026-03-01' });
+  const seen = [];
+  me.onChange((change) => seen.push([change.table, change.type]));
+  await me.deleteGoal(goal.id);
+  assert.deepEqual(seen[0], ['goals', 'delete']);
+  assert.equal((await me.loadAll()).contributions.length, 0);
+  assert.equal((await me.loadAll()).goals.length, 0);
+});
+
+test('saving the plan is announced with its percentages', async () => {
+  const { me } = pair();
+  const seen = [];
+  me.onChange((change) => seen.push(change));
+  await me.saveSplit({ needs: 60, wants: 20, savings: 20 });
+  assert.deepEqual(seen[0], { table: 'budget_settings', type: 'upsert', row: { needs_pct: 60, wants_pct: 20, savings_pct: 20 } });
+});
+
+test('onChange can be unsubscribed', async () => {
+  const { me } = pair();
+  let calls = 0;
+  const off = me.onChange(() => { calls += 1; });
+  off();
+  await me.addTransaction(expense);
+  assert.equal(calls, 0);
+});
+
+test('subscribers receive which table changed and the changed row', async () => {
+  const { me, wife } = pair();
+  const seen = [];
+  me.subscribe((change) => seen.push(change));
+  const row = await wife.addTransaction(expense);
+  await wife.deleteTransaction(row.id);
+  assert.deepEqual(seen.map((c) => [c.table, c.type]), [['transactions', 'upsert'], ['transactions', 'delete']]);
+  assert.equal(seen[0].row.id, row.id);
+});

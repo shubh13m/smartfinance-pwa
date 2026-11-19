@@ -43,9 +43,11 @@ export function buildEntryForm(ctx, { editing = null, onDone = () => {} } = {}) 
       kind, amount_paise, occurred_on: date.value, category: category.value,
       bucket: kind === 'expense' ? bucket.value : null, note: note.value,
     };
+    // If the server rejects the save after the sheet has closed, bring the form back with what was typed.
     const ok = await ctx.mutate(
       () => (editing ? ctx.ledger.updateTransaction(editing.id, payload) : ctx.ledger.addTransaction(payload)),
       editing ? 'Entry updated' : 'Entry saved',
+      { onFail: () => openEntrySheet(ctx, editing ? { ...payload, id: editing.id } : payload) },
     );
     if (ok) onDone();
   });

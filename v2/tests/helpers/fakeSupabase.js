@@ -19,10 +19,18 @@ export function createFakeBackend({ confirmEmail = false } = {}) {
   // Only an ACTIVE membership grants access (mirrors is_household_member in the SQL).
   const householdOf = (userId) => db.household_members.find((m) => m.user_id === userId && !m.left_at)?.household_id ?? null;
 
-  function notify(table, row) {
+  // Mirrors Supabase Realtime: inserts/updates honour the household filter and carry the row;
+  // deletes cannot be filtered and (under row-level security) carry only the primary key.
+  function notify(table, row, eventType = 'UPDATE') {
     for (const channel of channels) {
       for (const handler of channel.handlers) {
-        if (handler.table === table && handler.filter === `household_id=eq.${row.household_id}`) handler.callback({ new: row });
+        if (handler.table !== table) continue;
+        if (handler.event !== '*' && handler.event !== eventType) continue;
+        if (eventType === 'DELETE') {
+          if (!handler.filter) handler.callback({ eventType, new: {}, old: { id: row.id } });
+        } else if (handler.filter === `household_id=eq.${row.household_id}`) {
+          handler.callback({ eventType, new: { ...row }, old: {} });
+        }
       }
     }
   }
@@ -88,7 +96,7 @@ export function createFakeBackend({ confirmEmail = false } = {}) {
             return { data: null, error: { message: 'duplicate key value violates unique constraint "goals_one_emergency_per_household"' } };
           }
           db[table].push(row);
-          notify(table, row);
+          notify(table, row, 'INSERT');
           return shape([{ ...row }]);
         }
 
@@ -100,7 +108,7 @@ export function createFakeBackend({ confirmEmail = false } = {}) {
         }
         rows.forEach((row) => {
           db[table].splice(db[table].indexOf(row), 1);
-          notify(table, row);
+          notify(table, row, 'DELETE');
         });
         return { data: null, error: null };
       }
@@ -134,7 +142,7 @@ export function createFakeBackend({ confirmEmail = false } = {}) {
         }
         const member = { id: randomUUID(), household_id: household.id, user_id: user.id, display_name: clean, left_at: null, created_at: new Date().toISOString() };
         db.household_members.push(member);
-        notify('household_members', member);
+        notify('household_members', member, 'INSERT');
         return { data: household, error: null };
       },
       remove_member({ target_user }) {
@@ -180,8 +188,8 @@ export function createFakeBackend({ confirmEmail = false } = {}) {
       },
       channel(name) {
         const channel = { name, handlers: [] };
-        channel.on = (_type, opts, callback) => { channel.handlers.push({ table: opts.table, filter: opts.filter, callback }); return channel; };
-        channel.subscribe = () => { channels.add(channel); return channel; };
+        channel.on = (_type, opts, callback) => { channel.handlers.push({ table: opts.table, filter: opts.filter, event: opts.event, callback }); return channel; };
+        channel.subscribe = (onStatus) => { channels.add(channel); channel.onStatus = onStatus; onStatus?.('SUBSCRIBED'); return channel; };
         return channel;
       },
       removeChannel(channel) { channels.delete(channel); },
@@ -214,5 +222,8 @@ export function createFakeBackend({ confirmEmail = false } = {}) {
     };
   }
 
-  return { db, users, calls, channels, createClient };
+  // Test-only: every realtime channel reconnects (as after a phone wakes from sleep).
+  const reconnect = () => channels.forEach((channel) => channel.onStatus?.('SUBSCRIBED'));
+
+  return { db, users, calls, channels, createClient, reconnect };
 }

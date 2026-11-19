@@ -1,4 +1,5 @@
 import { DEFAULT_SPLIT } from '../config/constants.js';
+import { newId } from '../core/ids.js';
 import { dedupeMembers } from '../domain/members.js';
 import {
   validateContribution, validateGoal, validateLoan, validateRecurring, validateSplit, validateTransaction,
@@ -24,11 +25,32 @@ function checked(result) {
  */
 export function createLedger({ adapter, session }) {
   const { householdId, userId } = session;
+
+  // Writes are announced before the server answers (so the screen can update instantly)
+  // and again when it does. A failed write throws; the caller re-reads to undo the guess.
+  const watchers = new Set();
+  const announce = (table, type, row) => watchers.forEach((cb) => cb({ table, type, row }));
+
   const own = (table) => ({
     list: (where) => adapter.list(table, { householdId, where }),
-    add: (row) => adapter.insert(table, { ...row, household_id: householdId, created_by: userId }),
-    update: (id, patch) => adapter.update(table, id, patch),
-    remove: (id) => adapter.remove(table, id),
+    async add(row) {
+      const payload = { id: newId(), ...row, household_id: householdId, created_by: userId };
+      const now = new Date().toISOString();
+      announce(table, 'upsert', { created_at: now, updated_at: now, ...payload });
+      const saved = await adapter.insert(table, payload);
+      announce(table, 'confirm', saved);
+      return saved;
+    },
+    async update(id, patch) {
+      announce(table, 'patch', { id, ...patch });
+      const saved = await adapter.update(table, id, patch);
+      announce(table, 'confirm', saved);
+      return saved;
+    },
+    async remove(id) {
+      announce(table, 'delete', { id });
+      await adapter.remove(table, id);
+    },
   });
 
   const transactions = own('transactions');
@@ -83,9 +105,10 @@ export function createLedger({ adapter, session }) {
     updateLoan: async (id, input) => loans.update(id, checked(validateLoan(input))),
     deleteLoan: (id) => loans.remove(id),
     deleteGoal: async (id) => {
+      announce('goals', 'delete', { id });
       const related = await contributions.list({ goal_id: id });
       await Promise.all(related.map((c) => contributions.remove(c.id)));
-      await goals.remove(id);
+      await adapter.remove('goals', id);
     },
     addContribution: async (input) => contributions.add(checked(validateContribution(input))),
     deleteContribution: (id) => contributions.remove(id),
@@ -95,6 +118,7 @@ export function createLedger({ adapter, session }) {
       const split = checked(validateSplit(input));
       const patch = { needs_pct: split.needs, wants_pct: split.wants, savings_pct: split.savings };
       const [row] = await settings();
+      announce('budget_settings', 'upsert', patch);
       if (row) await adapter.update('budget_settings', row.id, patch);
       else await adapter.insert('budget_settings', { ...patch, household_id: householdId });
       return split;
@@ -116,10 +140,16 @@ export function createLedger({ adapter, session }) {
       return imported;
     },
 
-    // Re-render when either person changes anything in the household.
+    // Fires for every write made through this ledger, before and after the server answers.
+    onChange(callback) {
+      watchers.add(callback);
+      return () => watchers.delete(callback);
+    },
+
+    // The other person's changes, as { table, type, row } (or { type: 'resync' } after a dropped connection).
     subscribe(callback) {
       const tables = ['transactions', 'recurring_items', 'goals', 'goal_contributions', 'loans', 'budget_settings', 'household_members'];
-      const unsubscribers = tables.map((table) => adapter.subscribe(table, householdId, callback));
+      const unsubscribers = tables.map((table) => adapter.subscribe(table, householdId, (change = {}) => callback({ ...change, table })));
       return () => unsubscribers.forEach((off) => off());
     },
   };

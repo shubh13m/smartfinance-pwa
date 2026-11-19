@@ -1,6 +1,6 @@
 import test, { beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { installDom, resetDom, buttonByText, click, labelled, settle, submit, tick, text, type } from '../helpers/dom.js';
+import { installDom, resetDom, buttonByText, click, labelled, setConfirm, settle, submit, tick, text, type } from '../helpers/dom.js';
 import { createFakeBackend } from '../helpers/fakeSupabase.js';
 import { start } from '../../src/app/bootstrap.js';
 import { todayISO } from '../../src/core/dates.js';
@@ -457,8 +457,13 @@ test('failure: a failing save keeps the app usable and reports the error', async
   await createHouseholdVia(root, { cloud: { url: 'u', anonKey: 'k' }, createClient });
   backend.db.household_members.length = 0; // simulate losing membership: RLS now rejects writes
   await addEntry(root, { amount: 100, category: 'Groceries' });
-  assert.ok(document.querySelector('.sheet'), 'sheet stays open so nothing typed is lost');
+  await settle(15);
+  assert.match(toastText(), /Not saved, and undone/);
   assert.match(toastText(), /row-level security/);
+  const sheet = document.querySelector('.sheet');
+  assert.ok(sheet, 'the form comes back so nothing typed is lost');
+  assert.match(sheet.querySelector('input[inputmode=decimal]').value, /^100/);
+  assert.doesNotMatch(text(root), /Groceries/, 'the entry that never saved is not left on screen');
 });
 
 /* ---------- removing someone, and them coming back ---------- */
@@ -584,6 +589,7 @@ test('a person filter that points at someone who left falls back to Together', a
     };
   });
   await addEntry(root, { kind: 'income', amount: 1000, category: 'Salary' });
+  window.dispatchEvent(new Event('online')); // the app re-reads when the phone is back online
   await settle(15);
 
   assert.equal(root.querySelector('.toolbar .segmented'), null, 'only one member left, so no filter');
@@ -626,5 +632,147 @@ test('stopping the app cancels the "wait until you stop typing" retry', async ()
   const callsAfterStop = backend.calls.length;
   await tick(2300);
   assert.equal(backend.calls.length, callsAfterStop, 'no further backend calls after stop');
+});
+
+/* ---------- speed: patch, don't re-download ---------- */
+
+const selectCount = (backend) => backend.calls.filter((c) => c.op === 'select').length;
+
+test('sync: the other person\'s add, edit and delete arrive on screen without anyone re-downloading the data', async () => {
+  const { backend, rootA, rootB } = await twoPhonesInApp();
+  location.hash = '#/entries';
+  await settle();
+  const reads = selectCount(backend);
+
+  await addEntry(rootA, { amount: 300, category: 'Groceries' });
+  await settle(20);
+  assert.match(text(rootB.querySelector('.content')), /₹300\.00/, 'B sees the new entry');
+  assert.match(text(rootA.querySelector('.content')), /₹300\.00/);
+
+  click(rootA.querySelector('[aria-label="Edit Groceries"]'));
+  const sheet = document.querySelector('.sheet');
+  type(labelled('Amount', sheet), '450');
+  submit(sheet.querySelector('form'));
+  await settle(20);
+  assert.match(text(rootB.querySelector('.content')), /₹450\.00/, 'B sees the edit');
+  assert.doesNotMatch(text(rootB.querySelector('.content')), /₹300\.00/);
+
+  setConfirm(true);
+  click(rootA.querySelector('[aria-label="Delete Groceries"]'));
+  await settle(20);
+  assert.doesNotMatch(text(rootB.querySelector('.content')), /Groceries/, 'B sees the delete (deletes cannot be filtered by household)');
+  assert.doesNotMatch(text(rootA.querySelector('.content')), /Groceries/);
+  assert.equal(backend.db.transactions.length, 0);
+
+  assert.equal(selectCount(backend), reads, 'nothing was re-read from the database');
+});
+
+test('speed: your own entry is on screen and the sheet is closed before the server has answered', async () => {
+  const backend = createFakeBackend();
+  let release;
+  const hold = new Promise((resolve) => { release = resolve; });
+  // Every insert waits until the test lets it through.
+  const slow = (...args) => {
+    const client = backend.createClient(...args);
+    const from = client.from;
+    client.from = (table) => {
+      const api = from(table);
+      const insert = api.insert;
+      api.insert = (row) => {
+        const pending = insert(row);
+        const run = pending.then.bind(pending);
+        pending.then = (resolve, reject) => hold.then(() => run(resolve, reject));
+        return pending;
+      };
+      return api;
+    };
+    return client;
+  };
+  const root = mountPoint();
+  await launch(root, { cloud: { url: 'u', anonKey: 'k' }, createClient: slow });
+  type(labelled('Email', root), 'a@x.com');
+  type(labelled('Password', root), 'password1');
+  click(buttonByText('Create account', root));
+  await settle(15);
+  // Creating the household uses an RPC, which is not held back.
+  const [createForm] = root.querySelectorAll('form');
+  type(labelled('Household name', createForm), 'Our home');
+  type(labelled('Your name', createForm), 'Shubham');
+  submit(createForm);
+  await settle(20);
+  location.hash = '#/entries';
+  await settle();
+
+  await addEntry(root, { amount: 777, category: 'Groceries' });
+  assert.equal(backend.db.transactions.length, 0, 'the server has not been reached yet');
+  assert.match(text(root.querySelector('.content')), /Groceries/);
+  assert.match(text(root.querySelector('.content')), /₹777\.00/);
+  assert.equal(document.querySelector('.sheet'), null, 'the sheet closed without waiting');
+  assert.match(toastText(), /Entry saved/);
+
+  release();
+  await settle(20);
+  assert.equal(backend.db.transactions.length, 1);
+  assert.equal(root.querySelectorAll('li.entry').length, 1, 'the confirmed row replaced the guess instead of doubling it');
+});
+
+test('sync: a slow re-read that started before your change cannot wipe it from the screen', async () => {
+  const backend = createFakeBackend();
+  let readGate = null;
+  // Reads run immediately but their answer is held back (so it is stale by the time it arrives).
+  const gated = (...args) => {
+    const client = backend.createClient(...args);
+    const from = client.from;
+    client.from = (table) => {
+      const api = from(table);
+      const run = api.then.bind(api);
+      let isWrite = false;
+      const insert = api.insert;
+      api.insert = (row) => { isWrite = true; return insert(row); };
+      const gate = () => readGate;
+      api.then = (resolve, reject) => {
+        const held = gate();
+        return run(isWrite || !held ? resolve : (value) => held.then(() => resolve(value)), reject);
+      };
+      return api;
+    };
+    return client;
+  };
+  const root = mountPoint();
+  await signUpAndCreate(root, { createClient: gated }, { email: 'a@x.com', name: 'Shubham' });
+  location.hash = '#/entries';
+  await settle();
+
+  let releaseRead;
+  readGate = new Promise((resolve) => { releaseRead = resolve; });
+  window.dispatchEvent(new Event('online'));
+  await settle(4);
+  await addEntry(root, { amount: 250, category: 'Groceries' });
+  assert.equal(root.querySelectorAll('li.entry').length, 1);
+
+  releaseRead();
+  readGate = null;
+  await settle(10);
+  assert.equal(root.querySelectorAll('li.entry').length, 1, 'the stale answer did not remove the new entry');
+  await tick(600);
+  await settle(10);
+  assert.equal(root.querySelectorAll('li.entry').length, 1, 'and the follow-up read agrees with the database');
+  assert.equal(backend.db.transactions.length, 1);
+});
+
+test('sync: a phone that lost its connection re-reads what it missed when the connection returns', async () => {
+  const { backend, rootB } = await twoPhonesInApp();
+  location.hash = '#/entries';
+  await settle();
+  const { household_id, user_id } = backend.db.household_members[0];
+  // Happens while B is offline, so no realtime event reaches it.
+  backend.db.transactions.push({
+    id: crypto.randomUUID(), household_id, created_by: user_id, kind: 'expense', amount_paise: 123400, category: 'Travel', bucket: 'wants', occurred_on: todayISO(), note: '', created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  });
+  assert.doesNotMatch(text(rootB.querySelector('.content')), /Travel/);
+
+  backend.reconnect();
+  await settle(20);
+  assert.match(text(rootB.querySelector('.content')), /Travel/);
 });
 

@@ -4,6 +4,7 @@ import { createSupabaseAdapter } from '../data/adapters/supabaseAdapter.js';
 import { createLocalAuth } from '../auth/localAuth.js';
 import { createSupabaseAuth } from '../auth/supabaseAuth.js';
 import { createLedger } from '../services/ledger.js';
+import { createDataCache, isPatchable } from '../services/dataCache.js';
 import { createStore } from '../core/store.js';
 import { currentMonthId } from '../core/dates.js';
 import { h, clear } from '../core/dom.js';
@@ -77,8 +78,14 @@ async function mountApp(root, { auth, adapter, session, onMembershipLost }) {
     route: routeFromHash(), monthId: currentMonthId(), personId: 'all', basis: 'smoothed',
   });
   const ctx = { auth, ledger, session, state, data: null, mutate: null, rerender: null, refreshSession: null };
+  const cache = createDataCache();
   let alive = true;
   let loadToken = 0;
+  let localVersion = 0; // bumps on every write made here, so a slow re-read cannot undo it
+  let pendingWrites = 0;
+  let paintQueued = false;
+  const waiting = new Set();
+  const isTyping = () => root.contains(document.activeElement) && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
 
   const paint = () => {
     if (!alive || !ctx.data) return;
@@ -91,16 +98,32 @@ async function mountApp(root, { auth, adapter, session, onMembershipLost }) {
     renderShell(root, ctx);
   };
 
-  const reload = async () => {
+  // Several changes in the same moment (e.g. a goal and its contributions) cost one repaint.
+  const paintSoon = () => {
+    if (paintQueued) return;
+    paintQueued = true;
+    queueMicrotask(() => { paintQueued = false; paint(); });
+  };
+
+  const report = (error) => toast(friendlyDataError(error.message) || 'Something went wrong.', 'error');
+
+  const reload = async (force = false) => {
     const token = ++loadToken;
+    const startedAt = localVersion;
     const data = await ledger.loadAll();
     if (!alive || token !== loadToken) return;
+    // We changed something while this was in flight; its answer may predate our change, so ask again.
+    if (localVersion !== startedAt || (!force && pendingWrites > 0)) {
+      setTimeout(() => { if (alive) reload().catch(report); }, 400);
+      return;
+    }
     // If we were removed from the household the database shows us nothing; go back to the join screen.
     if (!data.members.some((m) => m.user_id === session.userId && !m.left_at)) {
       alive = false;
       onMembershipLost?.();
       return;
     }
+    cache.replace(data);
     ctx.data = data;
     paint();
   };
@@ -119,34 +142,74 @@ async function mountApp(root, { auth, adapter, session, onMembershipLost }) {
     paint();
   };
 
-  // Resolves true when the action succeeded so callers (e.g. a sheet) know whether to close.
-  ctx.mutate = async (action, message) => {
-    try {
+  // Our own writes: the screen shows the result at once, before the server has answered.
+  const unsubscribeLocal = ledger.onChange((change) => {
+    localVersion += 1;
+    if (cache.apply(change)) paintSoon();
+    ctx.data = cache.get();
+    waiting.forEach((release) => release());
+  });
+
+  // Resolves true when the action succeeded, or as soon as its result is on screen (so a
+  // sheet can close without waiting on the network). A write the server later rejects is
+  // undone by re-reading the truth, with a message, and `onFail` lets the caller bring its form back.
+  ctx.mutate = async (action, message, { onFail } = {}) => {
+    const before = localVersion;
+    let release;
+    const shown = new Promise((resolve) => { release = resolve; });
+    waiting.add(release);
+    pendingWrites += 1;
+    const finished = (async () => {
       await action();
-      if (message) toast(message, 'success');
-      await reload();
-      return true;
+      // Anything that did not go through the ledger (members, imports) is picked up by a re-read.
+      if (localVersion === before) await reload(true);
+    })();
+    const settle = () => { waiting.delete(release); pendingWrites -= 1; };
+    try {
+      await Promise.race([finished, shown]);
     } catch (error) {
-      toast(friendlyDataError(error.message) || 'Something went wrong.', 'error');
+      settle();
+      report(error);
+      reload().catch(report);
       return false;
     }
+    if (message) toast(message, 'success');
+    finished.then(settle, (error) => {
+      settle();
+      toast(`Not saved, and undone. ${friendlyDataError(error.message) || ''}`.trim(), 'error');
+      reload().catch(report);
+      onFail?.(error);
+    });
+    return true;
   };
 
   // A change made by the other person must not wipe a form you are typing in.
-  let retryTimer;
-  const reloadWhenIdle = () => {
-    clearTimeout(retryTimer);
+  let idleTimer;
+  const whenIdle = (run) => {
+    clearTimeout(idleTimer);
     if (!alive) return;
-    const typing = root.contains(document.activeElement)
-      && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
-    if (typing) retryTimer = setTimeout(reloadWhenIdle, 2000);
-    else reload().catch((error) => toast(friendlyDataError(error.message), 'error'));
+    if (isTyping()) idleTimer = setTimeout(() => whenIdle(run), 2000);
+    else run();
   };
+  const reloadWhenIdle = () => whenIdle(() => reload().catch(report));
+
+  // The other person's change is patched in directly; only things we cannot patch trigger a re-read.
+  const onRemote = (change) => {
+    if (change?.type === 'resync' || !isPatchable(change?.table)) return reloadWhenIdle();
+    const visible = cache.apply(change);
+    ctx.data = cache.get();
+    if (visible) whenIdle(paintSoon);
+  };
+
+  // A phone that was asleep or offline missed events; catch up when it wakes or reconnects.
+  const onVisible = () => { if (document.visibilityState !== 'hidden') reloadWhenIdle(); };
 
   const onHash = () => state.set({ route: routeFromHash() });
   window.addEventListener('hashchange', onHash);
+  window.addEventListener('online', reloadWhenIdle);
+  document.addEventListener('visibilitychange', onVisible);
   const unsubscribeState = state.subscribe(paint);
-  const unsubscribeRemote = ledger.subscribe(reloadWhenIdle);
+  const unsubscribeRemote = ledger.subscribe(onRemote);
 
   const load = async () => {
     try {
@@ -159,9 +222,12 @@ async function mountApp(root, { auth, adapter, session, onMembershipLost }) {
 
   return () => {
     alive = false;
-    clearTimeout(retryTimer);
+    clearTimeout(idleTimer);
     window.removeEventListener('hashchange', onHash);
+    window.removeEventListener('online', reloadWhenIdle);
+    document.removeEventListener('visibilitychange', onVisible);
     unsubscribeState();
+    unsubscribeLocal();
     unsubscribeRemote();
   };
 }
