@@ -99,6 +99,28 @@ test('layout has a phone layout and a desktop layout', () => {
   assert.match(layout, /\.sidebar/);
 });
 
+test('speed: taps respond at once on phones (no tap delay, no grey flash, pressed feedback)', () => {
+  const base = read('base.css');
+  assert.match(base, /-webkit-tap-highlight-color:\s*transparent/);
+  assert.match(base, /touch-action:\s*manipulation/);
+  assert.match(read('components.css'), /\.btn:active\s*\{[^}]*background/);
+  assert.match(read('layout.css'), /\.tab:active/);
+});
+
+test('speed: nothing on the scrolling page uses a blur filter, which janks scrolling on mid-range phones', () => {
+  for (const file of readdirSync(STYLES).filter((f) => f.endsWith('.css'))) {
+    assert.doesNotMatch(read(file), /backdrop-filter|filter:\s*blur/, file);
+  }
+});
+
+test('speed: sheets open quickly (under 0.25s) and do not scroll the page behind them', () => {
+  const css = read('components.css');
+  const durations = [...css.matchAll(/animation:\s*(?:fade|rise)\s+([\d.]+)s/g)].map((m) => Number(m[1]));
+  assert.ok(durations.length >= 2);
+  assert.ok(durations.every((d) => d <= 0.25), `opening animations ${durations.join(', ')}s`);
+  assert.match(css, /\.sheet\s*\{[^}]*overscroll-behavior:\s*contain/);
+});
+
 test('accessibility: the sign-in brand text is explicitly light because it sits on the gradient, not on a card', () => {
   const css = read('components.css');
   assert.match(css, /\.auth-brand\s*\{[^}]*color:\s*#fff/);

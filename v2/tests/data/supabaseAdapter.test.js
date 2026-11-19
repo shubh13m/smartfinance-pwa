@@ -75,15 +75,45 @@ test('database errors surface as thrown errors with the server message', async (
   await assert.rejects(() => adapter.remove('goals', 'a'), /row-level security violated/);
 });
 
-test('subscribe opens a household-filtered realtime channel and cleans up', () => {
+test('subscribe sends changed rows to the callback, filters inserts/updates by household, and cleans up', () => {
   const client = fakeClient();
-  let calls = 0;
-  const off = createSupabaseAdapter(client).subscribe('transactions', 'h1', () => { calls += 1; });
+  const seen = [];
+  const off = createSupabaseAdapter(client).subscribe('transactions', 'h1', (change) => seen.push(change));
   const [channel] = client.channels;
   assert.equal(channel.subscribed, true);
-  assert.deepEqual(channel.handlers[0].opts, { event: '*', schema: 'public', table: 'transactions', filter: 'household_id=eq.h1' });
-  channel.handlers[0].cb({ new: {} });
-  assert.equal(calls, 1);
+  const scoped = { schema: 'public', table: 'transactions', filter: 'household_id=eq.h1' };
+  assert.deepEqual(channel.handlers.map((h) => h.opts), [
+    { event: 'INSERT', ...scoped },
+    { event: 'UPDATE', ...scoped },
+    { event: 'DELETE', schema: 'public', table: 'transactions' },
+  ]);
+  const [insert, update, remove] = channel.handlers.map((h) => h.cb);
+  insert({ new: { id: 'a' } });
+  update({ new: { id: 'a', n: 2 } });
+  remove({ old: { id: 'a' } });
+  assert.deepEqual(seen, [
+    { type: 'upsert', row: { id: 'a' } },
+    { type: 'upsert', row: { id: 'a', n: 2 } },
+    { type: 'delete', row: { id: 'a' } },
+  ]);
   off();
   assert.equal(client.removed[0], channel);
+});
+
+test('subscribe asks for a re-read after the connection comes back, but not on the first connect', () => {
+  const client = fakeClient();
+  const seen = [];
+  let onStatus;
+  client.channel = (name) => {
+    const ch = { name, handlers: [] };
+    ch.on = () => ch;
+    ch.subscribe = (cb) => { onStatus = cb; return ch; };
+    return ch;
+  };
+  createSupabaseAdapter(client).subscribe('goals', 'h1', (change) => seen.push(change));
+  onStatus('SUBSCRIBED');
+  assert.deepEqual(seen, []);
+  onStatus('CHANNEL_ERROR');
+  onStatus('SUBSCRIBED');
+  assert.deepEqual(seen, [{ type: 'resync' }]);
 });

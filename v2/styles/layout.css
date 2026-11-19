@@ -9,8 +9,7 @@
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 12px 16px;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(10px);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
 .topbar-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -35,6 +34,7 @@
   color: var(--text-3); text-decoration: none; font-size: .68rem; font-weight: 600;
 }
 .tab.active { color: var(--brand); }
+.tab:active { background: var(--surface-2); }
 
 .fab {
   position: fixed; right: 18px; bottom: calc(var(--tabs-h) + 16px + env(safe-area-inset-bottom)); z-index: 40;

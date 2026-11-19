@@ -10,18 +10,19 @@ const code = readFileSync(resolve(V2, 'sw.js'), 'utf8');
 const CURRENT_CACHE = code.match(/const CACHE = '([^']+)'/)[1];
 
 /** Loads the service worker in a sandbox with a fake `self`, `caches` and `fetch`. */
-function loadWorker({ fetchImpl } = {}) {
+function loadWorker({ fetchImpl, cached = {} } = {}) {
   const handlers = {};
   const store = new Map();
   const cacheApi = {
     open: async (name) => ({
       addAll: async (urls) => { store.set(name, [...(store.get(name) || []), ...urls]); },
       put: async (request, response) => { store.set(`${name}:put`, [...(store.get(`${name}:put`) || []), request.url]); store.set('lastPut', response); },
+      match: async (request) => cached[request.url],
     }),
     keys: async () => ['old-cache', CURRENT_CACHE],
     delete: async (key) => { store.set('deleted', [...(store.get('deleted') || []), key]); return true; },
-    match: async (request) => `cached:${request.url}`,
   };
+  const calls = [];
   const sandbox = {
     self: {
       location: { origin: 'https://app.example' },
@@ -30,12 +31,12 @@ function loadWorker({ fetchImpl } = {}) {
       clients: { claim: async () => { store.set('claimed', true); } },
     },
     caches: cacheApi,
-    fetch: fetchImpl || (async () => ({ ok: true, clone() { return this; } })),
+    fetch: (request, options) => { calls.push({ url: request.url, options }); return (fetchImpl || (async () => ({ ok: true, clone() { return this; } })))(request, options); },
     URL,
     Promise,
   };
   vm.runInNewContext(code, sandbox);
-  return { handlers, store, sandbox };
+  return { handlers, store, sandbox, calls };
 }
 
 const fetchEvent = (url, method = 'GET') => {
@@ -88,13 +89,23 @@ test('service worker: activation deletes old caches and takes control', async ()
   assert.equal(store.get('claimed'), true);
 });
 
-test('privacy: cross-origin requests (database API, auth, CDN) are never intercepted or cached', () => {
+test('privacy: the database API and auth are never intercepted or cached', () => {
   const { handlers } = loadWorker();
-  for (const url of ['https://abc.supabase.co/rest/v1/transactions', 'https://abc.supabase.co/auth/v1/token', 'https://cdn.jsdelivr.net/npm/x']) {
+  for (const url of ['https://abc.supabase.co/rest/v1/transactions', 'https://abc.supabase.co/auth/v1/token', 'https://abc.supabase.co/realtime/v1/websocket', 'https://example.com/anything']) {
     const event = fetchEvent(url);
     handlers.fetch(event);
     assert.equal(event.responded, false, url);
   }
+});
+
+test('service worker: only the public library path on jsDelivr is cached, not the rest of that host', () => {
+  const { handlers } = loadWorker();
+  const lib = fetchEvent('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+  handlers.fetch(lib);
+  assert.equal(lib.responded, true);
+  const other = fetchEvent('https://cdn.jsdelivr.net/gh/someone/else.js');
+  handlers.fetch(other);
+  assert.equal(other.responded, false);
 });
 
 test('service worker: non-GET requests are never intercepted', () => {
@@ -106,7 +117,41 @@ test('service worker: non-GET requests are never intercepted', () => {
   }
 });
 
-test('service worker: same-origin GET is network-first and refreshes the cache', async () => {
+test('speed: a cached file is served at once, without waiting for the network', async () => {
+  const url = 'https://app.example/v2/src/main.js';
+  let finishNetwork;
+  const slowNetwork = new Promise((resolve) => { finishNetwork = resolve; });
+  const { handlers, calls } = loadWorker({ cached: { [url]: 'from-cache' }, fetchImpl: () => slowNetwork });
+  const event = fetchEvent(url);
+  handlers.fetch(event);
+  assert.equal(await event.promise, 'from-cache', 'answered while the network is still pending');
+  assert.equal(calls.length, 1, 'it still checks for a newer version in the background');
+  assert.equal(calls[0].options.cache, 'no-cache', 'the background check bypasses the browser\'s own stale copy');
+  finishNetwork({ ok: true, clone() { return this; } });
+  await event.waited;
+});
+
+test('service worker: the background refresh updates the cache for next time', async () => {
+  const url = 'https://app.example/v2/src/main.js';
+  const { handlers, store } = loadWorker({ cached: { [url]: 'old' }, fetchImpl: async () => ({ ok: true, clone() { return { fresh: true }; } }) });
+  const event = fetchEvent(url);
+  handlers.fetch(event);
+  await event.promise;
+  await event.waited;
+  assert.deepEqual([...store.keys()].filter((k) => k.endsWith(':put')).length, 1);
+  assert.deepEqual(store.get('lastPut'), { fresh: true });
+});
+
+test('service worker: a failing background refresh does not break serving the cached file', async () => {
+  const url = 'https://app.example/v2/index.html';
+  const { handlers } = loadWorker({ cached: { [url]: 'from-cache' }, fetchImpl: async () => { throw new TypeError('offline'); } });
+  const event = fetchEvent(url);
+  handlers.fetch(event);
+  assert.equal(await event.promise, 'from-cache');
+  await assert.doesNotReject(event.waited);
+});
+
+test('service worker: a file seen for the first time comes from the network and is cached', async () => {
   const response = { ok: true, clone() { return { copied: true }; } };
   const { handlers, store } = loadWorker({ fetchImpl: async () => response });
   const event = fetchEvent('https://app.example/v2/src/main.js');
@@ -126,9 +171,9 @@ test('service worker: failed responses are not cached', async () => {
   assert.ok(![...store.keys()].some((k) => k.endsWith(':put')));
 });
 
-test('service worker: falls back to the cache when offline', async () => {
+test('service worker: offline and never cached is an error, not a wrong answer', async () => {
   const { handlers } = loadWorker({ fetchImpl: async () => { throw new TypeError('offline'); } });
   const event = fetchEvent('https://app.example/v2/index.html');
   handlers.fetch(event);
-  assert.equal(await event.promise, 'cached:https://app.example/v2/index.html');
+  await assert.rejects(event.promise, TypeError);
 });

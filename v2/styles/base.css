@@ -2,7 +2,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+/* Phones: no grey flash on tap and no double-tap-to-zoom wait, so taps respond at once. */
+html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+a, button, input, select, label, summary { touch-action: manipulation; }
 
 body {
   margin: 0;

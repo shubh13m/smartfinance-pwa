@@ -59,6 +59,16 @@ applied before first paint), a sidebar layout on desktop and bottom tabs plus a 
 New or changed behaviour must ship with tests — the rules are in [TESTING.md](TESTING.md) and
 `.github/copilot-instructions.md`, and CI runs the full suite on every pull request.
 
+## Why it feels fast
+
+- **Your changes show instantly.** The ledger announces a write before the server answers, the
+  cache (`src/services/dataCache.js`) patches the screen, and a rejected write is undone with a
+  message (an entry form reopens with what you typed).
+- **The other phone is patched, not reloaded.** Realtime events carry the changed row. Only
+  member changes, or a reconnect after a dropped connection, trigger a full re-read.
+- **Launches are quick.** The service worker opens files from its cache and refreshes them in the
+  background, so a new deploy appears on the **second** launch after it ships.
+
 ## Known limits
 
 - Edits need a connection in cloud mode; there is no offline write queue yet.

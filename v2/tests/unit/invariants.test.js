@@ -129,6 +129,17 @@ test('index.html: every linked stylesheet, script, manifest and icon exists', ()
   for (const ref of refs) assert.ok(existsSync(resolve(V2, ref)), ref);
 });
 
+test('index.html: preconnect hints point at the configured database and the CDN, and the CSP allows both', async () => {
+  const html = readFileSync(join(V2, 'index.html'), 'utf8');
+  const hints = [...html.matchAll(/rel="preconnect" href="([^"]+)"/g)].map((m) => m[1]);
+  const { SUPABASE } = await import('../../src/config/env.js');
+  assert.ok(hints.includes(new URL(SUPABASE.url).origin), 'a stale project URL would warm the wrong host');
+  assert.ok(hints.includes('https://cdn.jsdelivr.net'));
+  const connect = html.match(/connect-src ([^;]+)/)[1];
+  assert.match(connect, /https:\/\/\*\.supabase\.co/);
+  assert.match(connect, /https:\/\/cdn\.jsdelivr\.net/);
+});
+
 test('manifest: valid PWA fields and real icon files', () => {
   const manifest = JSON.parse(readFileSync(join(V2, 'manifest.webmanifest'), 'utf8'));
   assert.equal(manifest.display, 'standalone');

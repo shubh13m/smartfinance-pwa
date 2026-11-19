@@ -7,6 +7,9 @@ import { newId } from '../../core/ids.js';
 //   remove(table, id)                    -> void
 //   subscribe(table, householdId, cb)    -> unsubscribe()
 // Rows are plain objects whose fields match the database columns.
+// Subscribers receive { type: 'upsert' | 'delete', row } so callers can patch what they
+// already have instead of re-reading everything. Deletes may carry only { id }.
+// An adapter may also send { type: 'resync' } after a lost connection, meaning "re-read".
 
 export function stamp(row, now = new Date().toISOString()) {
   return { id: newId(), created_at: now, updated_at: now, ...row };
@@ -26,9 +29,9 @@ export function createListeners() {
       listeners.get(table).add(entry);
       return () => listeners.get(table).delete(entry);
     },
-    emit(table, row) {
+    emit(table, row, type = 'upsert') {
       for (const { householdId, cb } of listeners.get(table) || []) {
-        if (!householdId || row.household_id === householdId) cb();
+        if (!householdId || row.household_id === householdId) cb({ type, row: { ...row } });
       }
     },
   };
